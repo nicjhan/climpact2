@@ -67,6 +67,7 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 numericInput("wsdin", "Variable:", 2, min = 0),
                 numericInput("csdin", "Operation:", 2, min = 0),
                 numericInput("rxnday", "Threshold:", 3, min = 0),
+                hr(),
                 actionButton("button", "Validate")
             )
         )),
