@@ -13,6 +13,7 @@ Use the navigation bar at the top of the page to perform these steps.
 ### How to Run this App
  To run the app locally on your computer: 
 ```{r}
+> library(shiny)
 > runApp('climpact2-app')
 ```
 The app will automatically start in your default browser.
