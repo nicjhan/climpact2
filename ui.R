@@ -45,11 +45,24 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
         h4('1. Input User Parameters'),
         wellPanel(
         fluidRow(
-            column(4,
-                textInput("caption", "Plotting title:"),
-                hr(),
-                "See section 3.5 of the ClimPACT2 user guide for help with the following fields",
+            column(6,
+                textInput("caption", "Plotting title:")
+            )
+        ),
+        hr(),
+        fluidRow(
+            column(12,
+                "See ",
+                actionLink("button", "section 3.5"),
+                " of the ",
+                actionLink("button", "ClimPact2 user guide"),
+                " for help with the following fields.",
                 br(),
+                br()
+            )
+        ),
+        fluidRow(
+            column(4,
                 numericInput("wsdin", "WSDIn Days:", 2, min = 0),
                 numericInput("csdin", "CSDIn Days:", 2, min = 0),
                 numericInput("rxnday", "RxnDay Days:", 3, min = 0),
@@ -63,11 +76,22 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 numericInput("prec", "SPEI/SPI over months:", 24, min = 0)
             ),
             column(4,
-                "Custom day count index (e.g. number of days where TX > 40, named TXgt40)",
-                numericInput("wsdin", "Variable:", 2, min = 0),
-                numericInput("csdin", "Operation:", 2, min = 0),
-                numericInput("rxnday", "Threshold:", 3, min = 0),
-                hr(),
+                strong("Custom day count index (e.g. number of days where TX > 40, named TXgt40)"),
+                br(),
+                selectInput("variable", label="Variable:",
+                    choices = list("TN" = 1, "TX" = 2, "TM" = 3, "PR" = 3, "DTR" = 4),
+                    selected = 1
+                ),
+                selectInput("operation", label="Operation:",
+                    choices = list(">" = 1, ">=" = 2, "<" = 3, "<=" = 4),
+                    selected = 1
+                ),
+                numericInput("threshold", "Threshold:", 0)
+            )
+        ),
+        hr(),
+        fluidRow(
+            column(4,
                 actionButton("button", "Validate")
             )
         )),
