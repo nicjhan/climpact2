@@ -6,8 +6,10 @@ A web or desktop app for ClimPACT2. Can be run on a personal computer without co
 
 To run the app from your computer:
 
+```{bash}
 $ git clone https://github.com/nicjhan/climpact2-app.git
 $ R
+```
 
 ```{r}
 > install.packages('shiny')

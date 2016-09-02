@@ -36,8 +36,8 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 actionButton("button", "Cancel"),
                 hr(),
                 "Please ",
-                actionLink("button", "view QC output"),
-                "and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
+                a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
             ))
         )
     )),
@@ -53,9 +53,9 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
         fluidRow(
             column(12,
                 "See ",
-                actionLink("button", "Section 3.5"),
+                a("Section 3.5", target="_blank", href="https://github.com/ARCCSS-extremes/climpact2/blob/master/user_guide/ClimPACT2_user_guide.htm"),
                 " of the ",
-                actionLink("button", "ClimPact2 user guide"),
+                a("ClimPact2 user guide", target="_blank", href="https://github.com/ARCCSS-extremes/climpact2/blob/master/user_guide/ClimPACT2_user_guide.htm"),
                 " for help with the following fields.",
                 br(),
                 br()
@@ -101,9 +101,9 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
             column(12,
                 actionButton("button", "Calculate Indices"),
                 "Then ",
-                actionLink("button", "view"),
+                a("view", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
                 " or ",
-                actionLink("button", "download"),
+                a("download", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
                 " plots. "
             )
         ))

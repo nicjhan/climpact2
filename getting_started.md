@@ -11,8 +11,17 @@ This is a web app which can also be run on a personal computer without connectin
 Use the navigation bar at the top of the page to perform these steps. 
 
 ### How to Run this App
- To run the app locally on your computer: 
+ To run the app locally on your computer with R installed:
+
+```{bash}
+$ git clone https://github.com/nicjhan/climpact2-app.git
+$ R
+```
+
 ```{r}
+> install.packages('shiny')
+> install.packages('shinythemes')
+> install.packages('markdown')
 > library(shiny)
 > runApp('climpact2-app')
 ```
