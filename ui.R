@@ -36,7 +36,7 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 actionButton("button", "Cancel"),
                 hr(),
                 "Please ",
-                actionLink("button", "View QC Output"),
+                actionLink("button", "view QC Output"),
                 "and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
             ))
         )
@@ -53,7 +53,7 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
         fluidRow(
             column(12,
                 "See ",
-                actionLink("button", "section 3.5"),
+                actionLink("button", "Section 3.5"),
                 " of the ",
                 actionLink("button", "ClimPact2 user guide"),
                 " for help with the following fields.",
@@ -69,10 +69,10 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 numericInput("n", "n for nTXnTN and nTXbnTNb:", 2, min = 0)
             ),
             column(4,
-                numericInput("hdd", "base temp for HDDHeat:", 18, min = 0),
-                numericInput("cdd", "base temp for CDDHeat:", 18, min = 0),
-                numericInput("gdd", "base temp for GDDgrow:", 10, min = 0),
-                numericInput("prec", "number of days precip >= nn (Rnnmm):", 30, min = 0),
+                numericInput("hdd", "Base temp for HDDHeat:", 18, min = 0),
+                numericInput("cdd", "Base temp for CDDHeat:", 18, min = 0),
+                numericInput("gdd", "Base temp for GDDgrow:", 10, min = 0),
+                numericInput("prec", "Number of days precip >= nn (Rnnmm):", 30, min = 0),
                 numericInput("prec", "SPEI/SPI over months:", 24, min = 0)
             ),
             column(4,
@@ -101,9 +101,9 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
             column(12,
                 actionButton("button", "Calculate Indices"),
                 "Then ",
-                actionLink("button", "View"),
+                actionLink("button", "view"),
                 " or ",
-                actionLink("button", "Download"),
+                actionLink("button", "download"),
                 " plots. "
             )
         ))
