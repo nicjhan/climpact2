@@ -36,7 +36,7 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 actionButton("button", "Cancel"),
                 hr(),
                 "Please ",
-                actionLink("button", "view QC Output"),
+                actionLink("button", "view QC output"),
                 "and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
             ))
         )
