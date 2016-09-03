@@ -1,6 +1,6 @@
 # climpact2-app
 
-A web or desktop app for ClimPACT2. Can be run on a personal computer without connecting to the Internet or by visiting the web server at 
+A web or desktop app for ClimPACT2. Can be run on a personal computer without connecting to the Internet or by visiting the web server at http://ec2-52-43-242-182.us-west-2.compute.amazonaws.com:3838/
 
 # Install
 
