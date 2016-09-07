@@ -17,14 +17,15 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                     accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
    		        checkboxInput('header', 'Includes header', TRUE),
 	            radioButtons('sep', 'Separator',
-    	               c(Comma=',', Semicolon=';', Tab='\t'), ',')
+    	               c(Comma=',', Semicolon=';', Tab='\t', Space=' '), ','),
+                actionButton("button", "Check")
             )),
             column(4,
                 h4('2. Enter Dataset Infomation'),
                 wellPanel(
                 textInput("caption", "Station name:"),
-                numericInput("lat", "Latitude:", 180, min = 0, max = 360),
-                numericInput("lon", "Longitude:", 0, min = -90, max = 90),
+                numericInput("lat", "Latitude:", 0, min = -90, max = 90),
+                numericInput("lon", "Longitude:", 0, min = 0, max = 360),
                 dateRangeInput('dateRange', label = 'Base period:',
                               start = Sys.Date() - 2, end = Sys.Date() + 2),
                 actionButton("button", "Validate")
