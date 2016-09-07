@@ -1,6 +1,7 @@
 
 
 shinyServer(function(input, output, session) {
+
     output$plot <- renderPlot({
         plot(cars, type=input$plotType)
     })
@@ -22,7 +23,7 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return(NULL)
 
-    read.csv(inFile$datapath, header=input$header, sep=input$sep, 
+    read.csv(inFile$datapath, header=input$header, sep=input$separator,
                  quote=input$quote)
   })
 })

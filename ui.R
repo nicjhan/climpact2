@@ -16,9 +16,10 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
 	            fileInput('file1', '',
                     accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
    		        checkboxInput('header', 'Includes header', TRUE),
-	            radioButtons('sep', 'Separator',
+	            radioButtons('separator', 'Separator',
     	               c(Comma=',', Semicolon=';', Tab='\t', Space=' '), ','),
-                actionButton("button", "Check")
+				radioButtons('quote', 'Quote',
+                             c(None='', 'Double Quote'='"', 'Single Quote'="'"), '"')
             )),
             column(4,
                 h4('2. Enter Dataset Infomation'),
