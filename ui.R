@@ -28,19 +28,23 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 numericInput("lat", "Latitude:", 0, min = -90, max = 90),
                 numericInput("lon", "Longitude:", 0, min = 0, max = 360),
                 dateRangeInput('dateRange', label = 'Base period:',
-                              start = Sys.Date() - 2, end = Sys.Date() + 2),
-                actionButton("button", "Validate")
+                              start = Sys.Date() - 2, end = Sys.Date() + 2)
             )),
-            column(4,
-                h4('3. Process Data and Quality Control'),
-                wellPanel(
-                actionButton("button", "Process"),
-                actionButton("button", "Cancel"),
-                hr(),
-                "Please ",
-                a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
-            ))
+            fluidRow(
+                column(4,
+                    h4('3. Process Data and Quality Control'),
+                    wellPanel(
+                    actionButton("button", "Process"),
+                    actionButton("button", "Cancel")
+                )),
+                column(4,
+                    h4('4. Evaluate Quality Control output'),
+                    wellPanel(
+                    "Please ",
+                    a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                    " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
+                ))
+            )
         )
     )),
     tabPanel("Calculate Climate Indices", fluidPage(
@@ -90,25 +94,24 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 ),
                 numericInput("threshold", "Threshold:", 0)
             )
-        ),
-        hr(),
-        fluidRow(
-            column(4,
-                actionButton("button", "Validate")
-            )
         )),
-        h4('2. Calculate and View Indices'),
-        wellPanel(
         fluidRow(
-            column(12,
-                actionButton("button", "Calculate Indices"),
-                "Then ",
-                a("view", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                " or ",
-                a("download", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                " plots. "
+            column(6,
+                h4('2. Calculate Indices'),
+                wellPanel(
+                    actionButton("button", "Calculate Indices")
+                )
+            ),
+            column(6,
+                h4('3. View Indices'),
+                wellPanel(
+                        a("View", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                        " or ",
+                        a("Download", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                        " plots. "
+                )
             )
-        ))
+        )
     ))
 ))
 
