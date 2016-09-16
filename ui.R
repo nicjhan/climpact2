@@ -99,16 +99,25 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
             column(6,
                 h4('2. Calculate Indices'),
                 wellPanel(
-                    actionButton("button", "Calculate Indices")
+                    actionButton("calculateIndices", "Calculate Indices")
                 )
             ),
             column(6,
                 h4('3. View Indices'),
-                wellPanel(
-                        a("View", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                        " or ",
-                        a("Download", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                        " plots. "
+                conditionalPanel(
+                    condition = "output.indicesCalculated",
+                    wellPanel(
+                            a("View", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                            " or ",
+                            a("Download", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                            " plots. "
+                    )
+                ),
+                conditionalPanel(
+                    condition = "!output.indicesCalculated",
+                    wellPanel(
+                        "Please complete step 2. calculate indices."
+                    )
                 )
             )
         )

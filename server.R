@@ -2,12 +2,9 @@
 
 shinyServer(function(input, output, session) {
 
-    output$plot <- renderPlot({
-        plot(cars, type=input$plotType)
-    })
-
-    output$summary <- renderPrint({
-        summary(cars)
+    output$indicesCalculated <- eventReactive(input$calculateIndices, {
+        cat("Hello There")
+        TRUE
     })
 
 	output$contents <- renderTable({
@@ -25,4 +22,6 @@ shinyServer(function(input, output, session) {
         read.csv(inFile$datapath, header=input$header, sep=input$separator,
                      quote=input$quote)
   })
+
+  outputOptions(output, "indicesCalculated", suspendWhenHidden=FALSE)
 })
