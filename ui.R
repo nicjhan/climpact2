@@ -2,7 +2,7 @@
 library(shinythemes)
 library(markdown)
 
-shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
+ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
     tabPanel("Getting Started",
 	    fluidPage(
 		    includeMarkdown("getting_started.md")
@@ -13,7 +13,7 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
        	    column(4,
                 h4('1. Load Dataset'),
                 wellPanel(
-	            fileInput('file1', '',
+	            fileInput('dataFile', '',
                     accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
    		        checkboxInput('header', 'Includes header', TRUE),
 	            radioButtons('separator', 'Separator',
@@ -24,26 +24,38 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
             column(4,
                 h4('2. Enter Dataset Infomation'),
                 wellPanel(
-                textInput("caption", "Station name:"),
-                numericInput("lat", "Latitude:", 0, min = -90, max = 90),
-                numericInput("lon", "Longitude:", 0, min = 0, max = 360),
-                dateRangeInput('dateRange', label = 'Base period:',
+                textInput("stationName", "Station name:"),
+                numericInput("stationLat", "Latitude:", 0, min = -90, max = 90),
+                numericInput("stationLon", "Longitude:", 0, min = 0, max = 360),
+                dateRangeInput('dataDateRange', label = 'Base period:',
                               start = Sys.Date() - 2, end = Sys.Date() + 2)
             )),
             fluidRow(
                 column(4,
                     h4('3. Process Data and Quality Control'),
                     wellPanel(
-                    actionButton("button", "Process"),
-                    actionButton("button", "Cancel")
+                    actionButton("doQualityControl", "Process"),
+                    actionButton("cancelQualityControl", "Cancel"),
+                    textOutput("missingStationName")
                 )),
                 column(4,
                     h4('4. Evaluate Quality Control output'),
-                    wellPanel(
-                    "Please ",
-                    a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                    " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
-                ))
+                    conditionalPanel(
+                        condition = "output.qualityControlDone",
+                        wellPanel(
+                            "Please ",
+                            a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                            " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
+                        )
+                    ),
+                    conditionalPanel(
+                        condition = "!output.qualityControlDone",
+                        wellPanel(
+                            "Please complete step 3: ",
+                            tags$b("Process Data and Quality Control")
+                        )
+                    )
+                )
             )
         )
     )),
@@ -116,11 +128,15 @@ shinyUI(navbarPage("Climpact2", theme = shinytheme("readable"),
                 conditionalPanel(
                     condition = "!output.indicesCalculated",
                     wellPanel(
-                        "Please complete step 2. calculate indices."
+                        "Please complete step 2: ",
+                        tags$b("Calculate Indices.")
                     )
                 )
             )
         )
     ))
-))
+)
+
+shinyUI(ui)
+
 

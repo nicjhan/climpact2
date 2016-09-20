@@ -1,9 +1,39 @@
 
 
-shinyServer(function(input, output, session) {
+server <- function(input, output, session) {
 
     output$indicesCalculated <- eventReactive(input$calculateIndices, {
         cat("Hello There")
+        TRUE
+    })
+
+    # Validate the stationName field
+    stationName <- reactive({
+        validate(
+            need(input$stationName != "", "Please enter a station name")
+        )
+        input$stationName
+    })
+    output$missingStationName <- eventReactive(input$doQualityControl, {
+        stationName()
+    })
+
+    output$qualityControlDone <- eventReactive(input$doQualityControl, {
+        cat("Doing quality control")
+
+        station <- stationName()
+        cat(station)
+        dataFile <- input$dataFile
+
+        withProgress(message = "Processing data", value = 0, {
+            n <- 100
+            for (i in 1:n) {
+                # Increment the progress bar
+                incProgress(1/n)
+                Sys.sleep(0.1)
+            }
+        })
+
         TRUE
     })
 
@@ -24,4 +54,7 @@ shinyServer(function(input, output, session) {
   })
 
   outputOptions(output, "indicesCalculated", suspendWhenHidden=FALSE)
-})
+  outputOptions(output, "qualityControlDone", suspendWhenHidden=FALSE)
+}
+
+shinyServer(server)
