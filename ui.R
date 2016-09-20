@@ -27,7 +27,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 textInput("stationName", "Station name:"),
                 numericInput("stationLat", "Latitude:", 0, min = -90, max = 90),
                 numericInput("stationLon", "Longitude:", 0, min = 0, max = 360),
-                dateRangeInput('dataDateRange', label = 'Base period:',
+                dateRangeInput('dateRange', label = 'Base period:',
                               start = Sys.Date() - 2, end = Sys.Date() + 2)
             )),
             fluidRow(
@@ -36,7 +36,8 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     wellPanel(
                     actionButton("doQualityControl", "Process"),
                     actionButton("cancelQualityControl", "Cancel"),
-                    textOutput("missingStationName")
+                    textOutput("stationNameMissing"),
+                    textOutput("dataFileMissing")
                 )),
                 column(4,
                     h4('4. Evaluate Quality Control output'),
