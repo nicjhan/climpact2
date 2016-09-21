@@ -1,12 +1,6 @@
 
-source("climpact2.R")
-package.check()
-source("ancillary/climpact2.etsci-functions.r")
-
 server <- function(input, output, session) {
 
-    # Set up globals
-    global.vars()
 
     output$indicesCalculated <- eventReactive(input$calculateIndices, {
         cat("Hello There")
@@ -20,7 +14,7 @@ server <- function(input, output, session) {
         )
         ""
     })
-    output$stationNameMissing <- eventReactive(input$doQualityControl, {
+    output$qualityControlError <- eventReactive(input$doQualityControl, {
         stationNameMissing()
     })
     dataFileMissing <- reactive({
@@ -29,12 +23,17 @@ server <- function(input, output, session) {
         )
         ""
     })
-    output$dataFileMissing <- eventReactive(input$doQualityControl, {
+    output$qualityControlError <- eventReactive(input$doQualityControl, {
         dataFileMissing()
     })
 
-    output$qualityControlDone <- eventReactive(input$doQualityControl, {
+    output$qualityControlError <- eventReactive(input$doQualityControl, {
         cat("Doing quality control")
+        source("climpact2.R")
+        # Set up globals
+        package.check()
+        source("ancillary/climpact2.etsci-functions.r")
+        global.vars()
 
         stationNameMissing()
         dataFileMissing()
@@ -45,9 +44,11 @@ server <- function(input, output, session) {
 
         latitude <- input$stationLat
         longitude <- input$stationLon
-        base.year.start <- input$dateRange[0]
-        base.year.end <- input$dateRange[1]
-        ofilename <- tempfile()
+        stationName <- input$stationName
+        base.year.start <- input$dateRange[1]
+        base.year.end <- input$dateRange[2]
+        base.year.start <-as.numeric(format(base.year.start, "%Y"));
+		base.year.end <-as.numeric(format(base.year.end, "%Y"));
 
         # input$dataFile will be NULL initially. After the user selects
         # and uploads a file, it will be a data frame with 'name',
@@ -55,9 +56,10 @@ server <- function(input, output, session) {
         # column will contain the local filenames where the data can
         # be found.
 
-        user.data <- read.user.file(dataFile$datapath)
-        metadata <- create.metadata(latitude,longitude,base.year.start,base.year.end,user.data$dates,ofilename)
-        QC.wrapper(metadata, user.data, user.file)
+        error <- load.data.qc(dataFile$datapath, user.data, latitude, longitude, stationName, base.year.start,base.year.end)
+        if (error !=  "") {
+            return(error)
+        }
 
         withProgress(message = "Processing data", value = 0, {
             n <- 20
@@ -68,11 +70,11 @@ server <- function(input, output, session) {
             }
         })
 
-        TRUE
+        return("")
     })
 
     outputOptions(output, "indicesCalculated", suspendWhenHidden=FALSE)
-    outputOptions(output, "qualityControlDone", suspendWhenHidden=FALSE)
+    outputOptions(output, "qualityControlError", suspendWhenHidden=FALSE)
 }
 
 shinyServer(server)

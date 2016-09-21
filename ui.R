@@ -27,8 +27,8 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 textInput("stationName", "Station name:"),
                 numericInput("stationLat", "Latitude:", 0, min = -90, max = 90),
                 numericInput("stationLon", "Longitude:", 0, min = 0, max = 360),
-                dateRangeInput('dateRange', label = 'Base period:',
-                              start = Sys.Date() - 2, end = Sys.Date() + 2)
+                dateRangeInput('dateRange', label = 'Base period:', startview="decade",
+                              start = as.Date("2010-01-01", "%Y-%m-%d"), end = as.Date("2014-01-01", "%Y-%m-%d"))
             )),
             fluidRow(
                 column(4,
@@ -36,13 +36,12 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     wellPanel(
                     actionButton("doQualityControl", "Process"),
                     actionButton("cancelQualityControl", "Cancel"),
-                    textOutput("stationNameMissing"),
-                    textOutput("dataFileMissing")
+                    textOutput("qualityControlError")
                 )),
                 column(4,
                     h4('4. Evaluate Quality Control output'),
                     conditionalPanel(
-                        condition = "output.qualityControlDone",
+                        condition = "output.qualityControlError == ''",
                         wellPanel(
                             "Please ",
                             a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
