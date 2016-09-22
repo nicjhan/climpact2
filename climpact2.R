@@ -38,6 +38,8 @@ allqc <- function (master, output, outrange = 4)
 	# Output goes to series.name_tx_flatline.txt  and series.name_tx_flatline.txt
 	flatline_tx(master, output)
 	flatline_tn(master, output)
+
+    return("")
 }
 
 # A function that should be called before any .csv file is written. It appends some basic information that should be stored in each file for 
@@ -470,8 +472,8 @@ pplotts <- function(var = "prcp", type = "h", tit = NULL,cio,metadata)
 # Globally assigns two variables: the array of strings and the final string (i.e. the file name)
 # This should be improved in the future (global variables should not be relied on)
 # The 'graphics' parameter indicates whether a progress bar is drawn to the screen via tcltk
-get.file.path <- function(user.file) {
-	outdirtmp<-strsplit(user.file,"/")[[1]]
+get.file.path <- function(tmpfile) {
+	outdirtmp<-strsplit(tmpfile,"/")[[1]]
 	file.name=outdirtmp[length(outdirtmp)]
 	e=strsplit(file.name,"\\.")[[1]]
 	ofilename=substr(file.name,start=1,stop=nchar(file.name)-nchar(e[length(e)])-1)
@@ -480,15 +482,19 @@ get.file.path <- function(user.file) {
 }
 
 # This function calls the major routines involved in reading the user's file, creating the climdex object and running quality control
-load.data.qc <- function(user.file, user.data, latitude, longitude, station.entry, base.year.start,base.year.end)
+load.data.qc <- function(user.file, tmpfile, latitude, longitude, station.entry, base.year.start,base.year.end)
 {
-	get.file.path(user.file)
+	get.file.path(tmpfile)
 
 	user.data <- read.user.file(user.file)
 	error <- draw.step1.interface(user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end)
     return(error)
 }
 
+get.qc.dir <- function()
+{
+    return(outqcdir)
+}
 
 # Given a user's RClimdex text file path, read in, convert -99.9 to NA and
 # return contents as array of 6 columns.
@@ -752,8 +758,12 @@ QC.wrapper <- function(metadata, user.data, user.file) {
 	pplotts(var = "dtr", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 
+    print("Got here")
+    print(ofilename)
+    print(outlogdir)
+
     # extraQC is called here. NOTE the default outrange=3 in original verson.
-	allqc(master = paste(user.file,".temporary",sep=""), output = outqcdir, outrange = 3) #stddev.crit)
+	error <- allqc(master = paste(user.file,".temporary",sep=""), output = outqcdir, outrange = 3) #stddev.crit)
 
 	##############################	
 	# Write out NA statistics.
@@ -761,9 +771,9 @@ QC.wrapper <- function(metadata, user.data, user.file) {
 
 	##############################	
 	# Remove temporary file
-	system(paste("rm ",user.file,".temporary",sep=""))
+	#system(paste("rm ",user.file,".temporary",sep=""))
 
-    return("")
+    return(error)
 
 } # end of QC.wrapper()
 

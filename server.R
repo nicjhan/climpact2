@@ -1,9 +1,7 @@
 
 server <- function(input, output, session) {
 
-
     output$indicesCalculated <- eventReactive(input$calculateIndices, {
-        cat("Hello There")
         TRUE
     })
 
@@ -27,6 +25,14 @@ server <- function(input, output, session) {
         dataFileMissing()
     })
 
+    output$qcLink <- renderText({
+       #a("view QC output", target="_blank", href=
+        qcDir <- get.qc.dir()
+        print("QC dir")
+        print(qcDir)
+        HTML(paste("<a target=\"_blank\" href=\"http://localhost:4199/",qcDir,"/\">QC output</a>", sep=""))
+    })
+
     output$qualityControlError <- eventReactive(input$doQualityControl, {
         cat("Doing quality control")
         source("climpact2.R")
@@ -47,8 +53,11 @@ server <- function(input, output, session) {
         stationName <- input$stationName
         base.year.start <- input$dateRange[1]
         base.year.end <- input$dateRange[2]
-        base.year.start <-as.numeric(format(base.year.start, "%Y"));
+        base.year.start <- as.numeric(format(base.year.start, "%Y"));
 		base.year.end <-as.numeric(format(base.year.end, "%Y"));
+
+        tmpFile <- tempfile('./tmp', tmpdir='tmp')
+        print(tmpFile)
 
         # input$dataFile will be NULL initially. After the user selects
         # and uploads a file, it will be a data frame with 'name',
@@ -56,7 +65,7 @@ server <- function(input, output, session) {
         # column will contain the local filenames where the data can
         # be found.
 
-        error <- load.data.qc(dataFile$datapath, user.data, latitude, longitude, stationName, base.year.start,base.year.end)
+        error <- load.data.qc(dataFile$datapath, tmpFile, latitude, longitude, stationName, base.year.start,base.year.end)
         if (error !=  "") {
             return(error)
         }

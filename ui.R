@@ -13,7 +13,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
        	    column(4,
                 h4('1. Load Dataset'),
                 wellPanel(
-	            fileInput('dataFile', '',
+	            fileInput('dataFile', NULL,
                     accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
    		        checkboxInput('header', 'Includes header', TRUE),
 	            radioButtons('separator', 'Separator',
@@ -43,13 +43,13 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     conditionalPanel(
                         condition = "output.qualityControlError == ''",
                         wellPanel(
-                            "Please ",
-                            a("view QC output", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
+                            "Please view ",
+                            uiOutput("qcLink"),
                             " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
                         )
                     ),
                     conditionalPanel(
-                        condition = "!output.qualityControlDone",
+                        condition = "output.qualityControlError != ''",
                         wellPanel(
                             "Please complete step 3: ",
                             tags$b("Process Data and Quality Control")
