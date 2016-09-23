@@ -1,10 +1,6 @@
 
 server <- function(input, output, session) {
 
-    output$indicesCalculated <- eventReactive(input$calculateIndices, {
-        TRUE
-    })
-
     # Validate the stationName and dataFile fields. FIXME: do this properly
     stationNameMissing <- reactive({
         validate(
@@ -82,7 +78,43 @@ server <- function(input, output, session) {
         return("")
     })
 
-    outputOptions(output, "indicesCalculated", suspendWhenHidden=FALSE)
+    output$indiceCalculationError <- eventReactive(input$calculateIndices, {
+
+        print('Hello')
+
+        plot.title <- input$plotTitle
+        wsdi_ud <- input$wsdin
+        csdi_ud <- input$csdin
+        rx_ui <- input$rxnday
+        txtn_ud <- input$txtn
+        Tb_HDD <- input$hdd
+        Tb_CDD <- input$cdd
+        Tb_GDD <- input$cdd
+        rnnmm_ud <- input$rnnmm
+        custom_SPEI <- input$spei
+        var.choice <- input$custVariable
+        op.choice <- input$custOperation
+        constant.choice <- input$custThreshold
+
+        print('Calculating Indices.')
+
+        error <- draw.step2.interface(plot.title, wsdi_ud, csdi_ud, rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice)
+
+        withProgress(message = "Processing data", value = 0, {
+            n <- 20
+            for (i in 1:n) {
+                # Increment the progress bar
+                incProgress(1/n)
+                Sys.sleep(0.1)
+            }
+        })
+
+        print('Finish calculating Indices.')
+
+        return("")
+    })
+
+    outputOptions(output, "indiceCalculationError", suspendWhenHidden=FALSE)
     outputOptions(output, "qualityControlError", suspendWhenHidden=FALSE)
 }
 

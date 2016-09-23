@@ -64,7 +64,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
         wellPanel(
         fluidRow(
             column(6,
-                textInput("caption", "Plotting title:")
+                textInput("plotTitle", "Plotting title:")
             )
         ),
         hr(),
@@ -84,27 +84,27 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 numericInput("wsdin", "WSDIn Days:", 2, min = 0),
                 numericInput("csdin", "CSDIn Days:", 2, min = 0),
                 numericInput("rxnday", "RxnDay Days:", 3, min = 0),
-                numericInput("n", "n for nTXnTN and nTXbnTNb:", 2, min = 0)
+                numericInput("txtn", "n for nTXnTN and nTXbnTNb:", 2, min = 0)
             ),
             column(4,
                 numericInput("hdd", "Base temp for HDDHeat:", 18, min = 0),
                 numericInput("cdd", "Base temp for CDDHeat:", 18, min = 0),
                 numericInput("gdd", "Base temp for GDDgrow:", 10, min = 0),
-                numericInput("prec", "Number of days precip >= nn (Rnnmm):", 30, min = 0),
-                numericInput("prec", "SPEI/SPI over months:", 24, min = 0)
+                numericInput("rnnmm", "Number of days precip >= nn (Rnnmm):", 30, min = 0),
+                numericInput("spei", "SPEI/SPI over months:", 24, min = 0)
             ),
             column(4,
                 strong("Custom day count index (e.g. number of days where TX > 40, named TXgt40)"),
                 br(),
-                selectInput("variable", label="Variable:",
-                    choices = list("TN" = 1, "TX" = 2, "TM" = 3, "PR" = 3, "DTR" = 4),
-                    selected = 1
+                selectInput("custVariable", label="Variable:",
+                    choices = list("TN", "TX", "TM", "PR", "DTR"),
+                    selected = "TN"
                 ),
-                selectInput("operation", label="Operation:",
-                    choices = list(">" = 1, ">=" = 2, "<" = 3, "<=" = 4),
-                    selected = 1
+                selectInput("custOperation", label="Operation:",
+                    choices = list(">", ">=", "<", "<="),
+                    selected = ">"
                 ),
-                numericInput("threshold", "Threshold:", 0)
+                numericInput("custThreshold", "Threshold:", 0)
             )
         )),
         fluidRow(
@@ -117,7 +117,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
             column(6,
                 h4('3. View Indices'),
                 conditionalPanel(
-                    condition = "output.indicesCalculated",
+                    condition = "output.indiceCalculationError == ''",
                     wellPanel(
                             a("View", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
                             " or ",
@@ -126,7 +126,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     )
                 ),
                 conditionalPanel(
-                    condition = "!output.indicesCalculated",
+                    condition = "output.indiceCalculationError != ''",
                     wellPanel(
                         "Please complete step 2: ",
                         tags$b("Calculate Indices.")

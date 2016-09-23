@@ -49,10 +49,7 @@ write_header <- function(filename,header="")
 	if(is.null(filename)) { stop("Filename not passed to function 'write_header'") }
 	
 	header = cbind("Description: ",header)
-	tmp = try(write.table(header, sep=",", file = filename, append = FALSE, row.names=FALSE,col.names = FALSE))
-	# Check if file is open
-	if(class(tmp)=="try-error") { tkmessageBox(message=paste("Error encountered, please check that the file ",filename," is not currently open, then select OK to try again.",sep=""),icon='warning');  write_header(filename) }
-
+	write.table(header, sep=",", file = filename, append = FALSE, row.names=FALSE,col.names = FALSE)
 	first_lines = cbind(c("Station: ","Latitude: ","Longitude: ","ClimPACT2_version: ","Date_of_calculation: "),c(ofilename,latitude,longitude,version.climpact,toString(Sys.Date())))
 	write.table(first_lines, sep=",", file = filename, append = TRUE, row.names=FALSE,col.names = FALSE)
 
@@ -793,4 +790,790 @@ global.vars <- function() {
 	loaded <<- FALSE
 	min_trend     <<- 10	# minimum number of data points for plotting a linear trend
 }
+
+# This function houses the beginning screen for "Step 2" in the GUI (i.e. calculating the indices). It reads in user preferences for the indices 
+# and calls the index functions for calculation and plotting.
+draw.step2.interface <- function(plot.title, wsdi_ud, csdi_ud, rx_ud, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice) {
+   
+    assign('plot.title',plot.title,envir=.GlobalEnv)
+    
+    assign("wsdi_ud",as.double(wsdi_ud),envir=.GlobalEnv) # wsdi wsdi_ud
+    assign("csdi_ud",as.double(csdi_ud),envir=.GlobalEnv)    #  csdi_ud
+    assign("rx_ud",as.double(rx_ud),envir=.GlobalEnv)# 14 rx_ud
+    assign("txtn_ud",as.double(txtn_ud),envir=.GlobalEnv)# txtn_ud
+    assign("rnnmm_ud",as.double(rnnmm_ud),envir=.GlobalEnv)# txtn_ud
+    assign("Tb_HDD",as.double(Tb_HDD),envir=.GlobalEnv) # Tb for HDDheat
+    assign("Tb_CDD",as.double(Tb_CDD),envir=.GlobalEnv) # Tb for HDDcold
+    assign("Tb_GDD",as.double(Tb_GDD),envir=.GlobalEnv) # Tb for HDDgrow
+    assign("custom_SPEI",as.double(custom_SPEI),envir=.GlobalEnv) # custom SPEI/SPI time period
+
+    assign("var.choice",var.choice,envir=.GlobalEnv)
+    assign("op.choice",op.choice,envir=.GlobalEnv)
+    assign("constant.choice",constant.choice,envir=.GlobalEnv)
+
+    print("var.choice")
+    print(var.choice)
+
+    index.calc(metadata)
+  
+} # end of draw.step2.interface
+
+# This function loops through all indices and calls the appropriate functions to calculate them.
+# It contains functions for some indices that are not kept in climpact2.etsci-functions.r. This is because they are specific to the GUI.
+index.calc<-function(metadata) {
+	calculate.custom.index <- function() {
+		print("calculating custom index",quote=FALSE)
+		for (frequency in c("monthly","annual")) {
+			if(var.choice=="DTR") { var.choice2=cio@data$dtr ; mask.choice = cio@namasks[[match.arg(frequency,choices=c("annual","monthly"))]]$tmin * cio@namasks[[match.arg(frequency,choices=c("annual","monthly"))]]$tmax } 
+			else if (var.choice=="TX") { var.choice2=cio@data$tmax ; mask.choice = cio@namasks[[match.arg(frequency,choices=c("annual","monthly"))]]$tmax } 
+			else if (var.choice=="TN") { var.choice2=cio@data$tmin ; mask.choice = cio@namasks[[match.arg(frequency,choices=c("annual","monthly"))]]$tmin }
+			else if (var.choice=="TM") { var.choice2=cio@data$tmean ; mask.choice = cio@namasks[[match.arg(frequency,choices=c("annual","monthly"))]]$tmin }
+			else if (var.choice=="PR") { var.choice2=cio@data$prec ; mask.choice = cio@namasks[[match.arg(frequency,choices=c("annual","monthly"))]]$prec }
+	
+			if(op.choice==">") { op.choice2="gt" }
+			else if(op.choice==">=") { op.choice2="ge" }
+			else if(op.choice=="<") { op.choice2="lt" }
+			else if(op.choice=="<=") { op.choice2="le" }
+
+			if(is.null(var.choice2)) return()
+			index.stored <- number.days.op.threshold(var.choice2, cio@date.factors[[match.arg(frequency,choices=c("annual","monthly"))]], constant.choice, op.choice) * mask.choice
+			write.index.csv(index.stored,index.name=paste(var.choice,op.choice2,constant.choice,sep=""),freq=frequency) ; 
+			plot.call(index.stored,index.name=paste(var.choice,op.choice2,constant.choice,sep=""),index.units="days",x.label="Years",sub=paste("Number of days where ",var.choice," ",op.choice," ",constant.choice,sep=""),freq=frequency)
+			cat(file=trend_file,paste(metadata$lat,metadata$lon,paste(var.choice,op.choice2,constant.choice,sep=""),metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
+		}
+	}
+
+	calculate.hw <- function() {
+		# If heatwave previous percentiles have been read in by user then use these in heatwave calculations, otherwise let climdex.hw calculate percentiles using currently loaded data.
+        # #{ tx90p <- hwlist$HW.TX90 ; tn90p <- hwlist$HW.TN90 ; tavg90p <- hwlist$HW.TAVG90 } else {
+			tx90p <<- tn90p <<- tavg90p <<- tavg05p <<- tavg95p <<- NULL #}
+
+			index.stored <- climdex.hw(cio) #,tavg90p=tavg90p,tn90p=tn90p,tx90p=tx90p)
+
+			write.hw.csv(index.stored,index.name=as.character(index.list$ID[i]),header="Heatwave definitions and aspects")
+			plot.hw(index.stored,index.name=as.character(index.list$ID[i]),index.units=as.character(index.list$Units[i]),x.label="Years",metadata=metadata)
+	}
+
+	calculate.spei <- function() {
+		if(all(is.na(cio@data$tmin)) | all(is.na(cio@data$tmax)) | all(is.na(cio@data$prec))) { warning("NOT PLOTTING SPEI: climdex.spei REQUIRES TMIN, TMAX AND PRECIP DATA.") } else {
+		# If SPEI/SPI thresholds have been read in by user then use these in SPEI/SPI calculations.
+		if(exists("speiprec")) { tnraw <- speitmin ; txraw <- speitmax ; praw <- speiprec ; btime <- speidates } else {
+			tnraw <- txraw <- praw <- btime <- NULL }
+
+	        if(!is.null(btime)) computefuture = TRUE else computefuture = FALSE
+		ts.start <- c(as.numeric(date.years[1]),1)
+		ts.end <- c(as.numeric(date.years[length(date.years)]),12)
+
+		# Code related to creating spi* variables aren't needed when relying on climpact2.r. However, due to ostensible issues with CRAN SPEI, this code needs to be rolled into this file in order to call our own SPEI code.
+	        if(computefuture){
+		                # construct dates
+                        beg = as.Date(btime[1])
+                        end = dates[length(dates)]      #as.Date(paste(base.year.end,"12","31",sep="-"))
+                        dat.seq = seq(beg,end,by = "1 day")
+                        spidates = dat.seq
+                        spitmin <- spitmax <- spiprec <- spifactor <- vector(mode="numeric",length=length(spidates))
+                        spitmin[1:length(tnraw)] = tnraw
+                        spitmax[1:length(txraw)] = txraw
+                        spiprec[1:length(praw)] = praw
+
+	                spitmin[(length(spitmin)-length(cio@data$tmin)+1):length(spitmin)] = cio@data$tmin
+	                spitmax[(length(spitmax)-length(cio@data$tmax)+1):length(spitmax)] = cio@data$tmax
+	                spiprec[(length(spiprec)-length(cio@data$prec)+1):length(spiprec)] = cio@data$prec
+	                spifactor = factor(format(spidates,format="%Y-%m"))
+			ts.start <- c(as.numeric(format(beg,format="%Y")),1)
+	        } else {
+	                spitmin = cio@data$tmin
+	                spitmax = cio@data$tmax
+	                spiprec = cio@data$prec
+	                spifactor = cio@date.factors$monthly
+	        }
+	        
+		######################################
+		# Calculate SPEI via old climpact code
+
+	        # get monthly means of tmin and tmax. And monthly total precip.
+	        tmax_monthly <- as.numeric(tapply.fast(spitmax,spifactor,mean,na.rm=TRUE))
+	        tmin_monthly <- as.numeric(tapply.fast(spitmin,spifactor,mean,na.rm=TRUE))
+	        prec_sum <- as.numeric(tapply.fast(spiprec,spifactor,function(x) { if(all(is.na(x))) { return(NA) } else { return(sum(x,na.rm=TRUE)) } } )) # Needed this function since summing a series of NA with na.rm = TRUE results in zero instead of NA.
+	        tmax_monthly[tmax_monthly=="NaN"] <- NA
+	        tmin_monthly[tmin_monthly=="NaN"] <- NA
+
+		# Caclulate evapotranspiration estimate and create time-series object.
+		pet = as.numeric(hargreaves(tmin_monthly,tmax_monthly,lat=latitude,Pre=prec_sum,na.rm=TRUE))
+		dat = ts(prec_sum-pet,freq=12,start=ts.start,end=ts.end)
+		index.store <- array(c(cspei(dat,na.rm=T,scale=c(3),ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12),basetmin=tnraw,basetmax=txraw,baseprec=praw,basetime=btime)$fitted,
+					cspei(dat,na.rm=T,scale=c(6),ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted,
+					cspei(dat,na.rm=T,scale=c(12),ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted,
+					cspei(dat,na.rm=T,scale=c(custom_SPEI),ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted),
+					c(length((cspei(dat,na.rm=T,scale=c(3))$fitted)),4))
+                index.store <- aperm(index.store,c(2,1))
+
+		# End calculating SPEI via old climpact code
+		######################################
+
+		######################################
+		# Calculate SPEI via CRAN SPEI package housed in climpact2.r
+		#			index.store <- climdex.spei(cio,ref.start=c(base.year.start,1),ref.end=c(base.year.end,12),lat=latitude,basetmin=tnraw,basetmax=txraw,baseprec=praw,basetime=btime)
+
+		# Temporary SPEI to mask out values that should be NA
+		#			spiprec = cio@data$prec
+		#        	        spitmin = cio@data$tmin
+		#	                spitmax = cio@data$tmax
+		#                        prec_sum <- as.numeric(tapply.fast(spiprec,cio@date.factors$monthly,function(x) { if(all(is.na(x))) { return(NA) } else { return(sum(x,na.rm=TRUE)) } } ))
+		#        		tmax_monthly <- as.numeric(tapply.fast(spitmax,cio@date.factors$monthly,mean,na.rm=TRUE))
+		#		        tmin_monthly <- as.numeric(tapply.fast(spitmin,cio@date.factors$monthly,mean,na.rm=TRUE))
+		#			pet <- hargreaves(tmin_monthly,tmax_monthly,lat=latitude,Pre=prec_sum,na.rm=TRUE)
+		#			tmpspei = spei(ts(prec_sum-pet,freq=12,start=ts.start,end=ts.end),scale=1,ref.start=c(base.year.start,1),ref.end=c(base.year.end,12),na.rm=TRUE)$fitted
+		#			index.store[,which(is.na(tmpspei))] = NA
+
+		# End calculating SPEI via CRAN SPEI package housed in climpact2.r
+		######################################
+
+		index.store <- ifelse(index.store=="Inf" | index.store=="-Inf" | index.store=="NaN",NA,index.store)
+
+	# - Strip back off all data not part of the original time series.
+	# - Another kludge here relates to an ostensible bug in the SPEI function. When SPEI is fed a series of NA values followed by valid data, it returns values of SPEI/SPI for those NA values, when it shouldn't.
+	#    The author has been alerted to this problem. But this means that when a synthetic time series has been made for scenarios using reference data from a different dataset, the initial SPEI/SPI values need
+	#    to be manually removed. The first 2, 5 and 11 values for each final time series needs NA'ing, corresponding to 3, 6 and 12 month calculation periods.
+	        if(computefuture) {
+	                index.store <- index.store[,(length(index.store[1,])-length(unique(cio@date.factors$monthly))+1):length(index.store[1,])]
+					# remove spurious values that shouldn't exist (but exist anyway due to the synthetic time series we've fed the spei/spi function).
+					index.store[1,1:2] <- NA
+                index.store[2,1:5] <- NA
+                index.store[3,1:11] <- NA
+                index.store[4,1:(custom_SPEI-1)] <- NA
+                spifactor <- spifactor[(length(spifactor)-length((cio@date.factors$monthly))+1):length(spifactor)]
+	        }
+		write.precindex.csv(index.store,index.name=index.list$ID[82],spifactor,header="Standardised Precipitation-Evapotranspiration Index")
+		plot.precindex(index.store,index.name=index.list$ID[82],index.units=index.list$Units[81],x.label="Years",spifactor,sub=as.character(index.list$Definition[82]),times=c(3,6,12,custom_SPEI),metadata=metadata) } 
+	}
+		
+	calculate.spi <- function() {
+			if(all(is.na(cio@data$prec))) warning("NOT PLOTTING SPI: climdex.spi REQUIRES PRECIP DATA.") else {
+                if(exists("speiprec")) { tnraw <- speitmin ; txraw <- speitmax ; praw <- speiprec ; btime <- speidates } else {
+                        tnraw <- txraw <- praw <- btime <- NULL }
+
+                if(!is.null(btime)) computefuture = TRUE else computefuture = FALSE
+                ts.start <- c(as.numeric(date.years[1]),1)
+                ts.end <- c(as.numeric(date.years[length(date.years)]),12)
+
+                # Code related to creating spi* variables aren't needed when relying on climpact2.r. However, due to ostensible issues with CRAN SPEI, this code needs to be rolled into this file in order to call our own SPEI code.
+                if(computefuture){
+                        # construct dates
+                        beg = as.Date(btime[1])
+                        end = dates[length(dates)]
+                        dat.seq = seq(beg,end,by = "1 day")
+                        spidates = dat.seq
+
+                        spiprec <- spifactor <- array(NA,length(spidates))
+                        spiprec[1:length(praw)] = praw
+
+                        spiprec[(length(spiprec)-length(cio@data$prec)+1):length(spiprec)] = cio@data$prec
+                        spifactor = factor(format(spidates,format="%Y-%m"))
+
+                        ts.start <- c(as.numeric(format(beg,format="%Y")),1)
+                } else {
+                        spiprec = cio@data$prec
+                        spifactor = cio@date.factors$monthly
+                }
+
+		######################################
+		# Calculate SPI via old climpact code
+
+		# get monthly total precip.
+		prec_sum <- as.numeric(tapply.fast(spiprec,spifactor,function(x) { if(all(is.na(x))) { return(NA) } else { return(sum(x,na.rm=TRUE)) } } )) # Needed this function since summing a series of NA with na.rm = TRUE results in zero instead of NA.
+
+		# Create time-series object.
+		dat <- ts(prec_sum,freq=12,start=ts.start,end=ts.end)
+                index.store <- array(c(cspi(dat,na.rm=T,scale=3,ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted,
+					cspi(dat,na.rm=T,scale=6,ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted,
+					cspi(dat,na.rm=T,scale=12,ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted,
+					cspi(dat,na.rm=T,scale=custom_SPEI,ref.start=c(metadata$base.start,1),ref.end=c(metadata$base.end,12))$fitted),
+					c(length((cspi(prec_sum,na.rm=T,scale=c(3))$fitted)),4))
+                index.store <- aperm(index.store,c(2,1))
+
+		# End calculating SPI via old climpact code
+		######################################
+
+                index.store <- ifelse(index.store=="Inf" | index.store=="-Inf" | index.store=="NaN",NA,index.store)
+
+	# - Strip back off all data not part of the original time series.
+	# - Another kludge here relates to an ostensible bug in the SPEI function. When SPEI is fed a series of NA values followed by valid data, it returns values of SPEI/SPI for those NA values, when it shouldn't.
+	#    The author has been alerted to this problem. But this means that when a synthetic time series has been made for scenarios using reference data from a different dataset, the initial SPEI/SPI values need
+	#    to be manually removed. The first 2, 5 and 11 values for each final time series needs NA'ing, corresponding to 3, 6 and 12 months calculation periods.
+                if(computefuture) {
+                        index.store <- index.store[,(length(index.store[1,])-length(unique(cio@date.factors$monthly))+1):length(index.store[1,])]
+                        # remove spurious values that shouldn't exist (but exist anyway due to the synthetic time series we've fed the spei/spi function).
+                        index.store[1,1:2] <- NA
+                        index.store[2,1:5] <- NA
+                        index.store[3,1:11] <- NA
+							index.store[4,1:(custom_SPEI-1)] <- NA
+                        spifactor <- spifactor[(length(spifactor)-length((cio@date.factors$monthly))+1):length(spifactor)]
+                }
+		write.precindex.csv(index.store,index.name=index.list$ID[83],spifactor,header="Standardised Precipitation Index")
+		plot.precindex(index.store,index.name=index.list$ID[83],index.units=index.list$Units[82],x.label="Years",spifactor,sub=as.character(index.list$Definition[83]),times=c(3,6,12,custom_SPEI),metadata=metadata) } 
+	}
+
+	# pdf file for all plots
+	# Check 'all' PDF isn't open, then open.
+	pdfname = paste(ofilename,"_all_plots.pdf",sep="")
+
+	pdf(file=paste(outjpgdir,pdfname,sep="/"),height=8,width=11.5)
+	pdf.dev=dev.cur()
+	assign('pdf.dev',pdf.dev,envir=.GlobalEnv)
+	
+	# trend file
+	trend_file<-paste(outtrddir,paste(ofilename,"_trend.csv",sep=""),sep="/") ; assign('trend_file',trend_file,envir=.GlobalEnv)
+	write_header(trend_file,"Linear trend statistics")
+	cat(file=trend_file,paste("Indices","StartYear","EndYear","Slope","STD_of_Slope","P_Value",sep=","),fill=180,append=T)
+
+	index_not_calculated=''   # contains index names that could not be calculated.
+	assign('index_not_calculated',index_not_calculated,envir=.GlobalEnv)
+
+	# Read in index .csv file
+	index.list <- read.csv("ancillary/climate.indices.csv",header=T,sep=',')
+
+	# create a list of indices that do not require a 'frequency' parameter
+	no.freq.list = c("r95ptot","r99ptot","sdii","hddheat","cddcold","gddgrow","r95p","r99p","gsl","spi","spei","hw","wsdi","wsdin","csdi","csdin","ntxntn","ntxbntnb")
+
+	#####################################
+	# MEAT DONE HERE
+	# Loop through and calculate and plot each index
+
+	for (i in 1:length(index.list$ID)) {
+		print(paste("calculating",index.list$ID[i]),quote=FALSE)
+		tmp.index.name = as.character(index.list$ID[i])
+		tmp.index.def = as.character(index.list$Definition[i])
+		# Set frequency if relevant to current index
+		if(is.na(index.list$Annual.flag[i])) frequency = NA
+		else {
+			if(index.list$Annual.flag[i]==TRUE) frequency = "annual"
+			else frequency = "monthly"
+		}
+		
+		if(!as.character(index.list$ID[i]) %in% no.freq.list) index.parameter = paste("cio,freq=\"",frequency,"\"",sep="")
+		else index.parameter = paste("cio",sep="")
+		
+		if(index.list$ID[i]=="hw") { calculate.hw() ; next }
+		else if (index.list$ID[i]=="spei") { calculate.spei() ; next }
+		else if (index.list$ID[i]=="spi") { calculate.spi() ; next }
+		else if (index.list$ID[i]=="rnnmm") {
+			tmp.index.name = paste("r",rnnmm_ud,"mm",sep="")
+			index.parameter = paste(index.parameter,rnnmm_ud,sep=",")
+			tmp.index.def = paste("Number of days when precipitation >= ",rnnmm_ud,sep="") }
+		else if (index.list$ID[i]=="wsdid") {
+			tmp.index.name = paste("wsdi",wsdi_ud,sep="")
+			index.parameter = paste("cio,n=",wsdi_ud,sep="")
+			tmp.index.def = paste("Annual number of days with at least ",rnnmm_ud," consecutive days when TX > 90th percentile",sep="") }
+		else if (index.list$ID[i]=="csdid") {
+			tmp.index.name = paste("csdi",csdi_ud,sep="")
+			index.parameter = paste("cio,n=",csdi_ud,sep="")
+			tmp.index.def = paste("Annual number of days with at least ",csdi_ud," consecutive days when TN < 10th percentile",sep="") }
+		else if (index.list$ID[i]=="txdtnd") {
+			tmp.index.name = paste("tx",txtn_ud,"tn",txtn_ud,sep="")
+			index.parameter = paste("cio,n=",txtn_ud,sep="")
+			tmp.index.def = paste("Number of ",txtn_ud," consecutive days where both TX > 95th percentile and TN > 95th percentile",sep="") }
+		else if (index.list$ID[i]=="txbdtnbd") {
+			tmp.index.name = paste("txb",txtn_ud,"tnb",txtn_ud,sep="")
+			index.parameter = paste("cio,n=",txtn_ud,sep="")
+			tmp.index.def = paste("Number of ",txtn_ud," consecutive days where both TX < 5th percentile and TN < 5th percentile",sep="") }
+		else if (index.list$ID[i]=="rxdday") {
+			tmp.index.name = paste("rx",rx_ud,"day",sep="")
+			index.parameter = paste(index.parameter,",n=",rx_ud,sep="")
+			tmp.index.def = paste("Maximum ",rx_ud,"-day precipitation total",sep="") }
+		else if (index.list$ID[i]=="hddheatn") {
+			tmp.index.name = paste("hddheat",Tb_HDD,sep="")
+			index.parameter = paste("cio,Tb=",Tb_HDD,sep="")
+			tmp.index.def = paste("Annual sum of ",Tb_HDD," - TM",sep="") }
+		else if (index.list$ID[i]=="cddcoldn") {
+			tmp.index.name = paste("cddcold",Tb_CDD,sep="")
+			index.parameter = paste("cio,Tb=",Tb_CDD,sep="")
+			tmp.index.def = paste("Annual sum of TM - ",Tb_CDD,sep="") }
+		else if (index.list$ID[i]=="gddgrown") {
+			tmp.index.name = paste("gddgrow",Tb_GDD,sep="")
+			index.parameter = paste("cio,Tb=",Tb_GDD,sep="")
+			tmp.index.def = paste("Annual sum of TM - ",Tb_GDD,sep="") }
+			
+		index.stored <- eval(parse(text=paste("climdex.",as.character(index.list$ID[i]),"(",index.parameter,")",sep=""))) #index.function(cio)
+		write.index.csv(index.stored,index.name=tmp.index.name,freq=frequency,header=tmp.index.def)
+		plot.call(index.stored,index.name=tmp.index.name,index.units=as.character(index.list$Units[i]),x.label="Years",sub=tmp.index.def,freq=frequency)
+		cat(file=trend_file,paste(tmp.index.name,metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
+		remove(index.parameter)
+	}
+	if(length(op.choice)==0 || length(var.choice)==0) { print("no custom index to calculate",quote=FALSE) } else { calculate.custom.index() }
+	dev.off(pdf.dev)
+}
+# end of index.calc 
+
+# write.index.csv
+# takes a time series of a given index and writes to file
+write.index.csv <- function(index=NULL,index.name=NULL,freq="annual",header="") {
+	if(is.null(index.name) | is.null(index)) stop("Need index data and index.name in order to write CSV file.")
+
+	if(index.name=="tx95t") { freq="DAY" } 
+	else {
+		if(freq=="monthly") { freq="MON" }
+		else if(freq=="annual") { freq="ANN" }
+	}
+
+	if(index.name=="wsdin") { tmp.name=paste("wsdi",wsdi_ud,sep="") } 
+	else if (index.name=="csdid") { tmp.name=paste("csdi",csdi_ud,sep="") }
+	else if (index.name=="rxdday") { tmp.name=paste("rx",rx_ud,"day",sep="") }
+	else if (index.name=="rnnmm") { tmp.name=paste("r",rnnmm_ud,"mm",sep="") }
+	else if (index.name=="txdtnd") { tmp.name=paste("tx",txtn_ud,"tn",txtn_ud,sep="") }
+	else if (index.name=="txbdtnbd") { tmp.name=paste("txb",txtn_ud,"tnb",txtn_ud,sep="") }
+	else { tmp.name = index.name }
+	nam1 <- paste(outinddir, paste(ofilename, "_", tmp.name,"_",freq, ".csv", sep = ""), sep = "/")
+	write_header(nam1,header)
+	index=c(tmp.name,index)
+	names(index)[1]="time"
+	
+	# calculate normalised values
+	norm = array(NA,(length(index)-1))
+	avg = mean(as.numeric(index[2:length(index)]),na.rm=TRUE)
+	stddev = sd(as.numeric(index[2:length(index)]),na.rm=TRUE)
+	for (i in 2:length(index)) { norm[i-1] = (as.numeric(index[i])-avg)/stddev }
+	norm = c("normalised (all years)",norm)
+	new.index = cbind(index,norm)
+
+	write.table(new.index,file = nam1, append = TRUE, sep = ", ", na = "-99.9", col.names = FALSE,quote=FALSE)
+}
+
+# write.hw.csv
+# takes a time series of hw and writes to file
+write.hw.csv <- function(index=NULL,index.name=NULL,header="") {
+        if(is.null(index)) stop("Need heatwave data to write CSV file.")
+
+		# print each definition in a separate .csv. Thus each .csv will have columns of time, HWA, HWM, HWF, HWD, HWN.
+		aspect.names <- list("time","HWM","HWA","HWN","HWD","HWF")
+		aspect.names.ECF <- list("time","CWM","CWA","CWN","CWD","CWF")
+
+		# write Tx90 heatwave data
+        nam1 <- paste(outinddir, paste(ofilename, "_Tx90_heatwave_ANN.csv", sep = ""), sep = "/")
+		write_header(nam1,header)
+		write.table(aspect.names, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind((date.years),aperm(index[1,,],c(2,1))), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+
+        # write Tn90 heatwave data
+        nam1 <- paste(outinddir, paste(ofilename, "_Tn90_heatwave_ANN.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(aspect.names, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind((date.years),aperm(index[2,,],c(2,1))), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+
+        # write EHF heatwave data
+        nam1 <- paste(outinddir, paste(ofilename, "_EHF_heatwave_ANN.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(aspect.names, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind((date.years),aperm(index[3,,],c(2,1))), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+
+        # write ECF coldwave data
+        nam1 <- paste(outinddir, paste(ofilename, "_ECF_heatwave_ANN.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(aspect.names.ECF, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind((date.years),aperm(index[4,,],c(2,1))), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+}
+
+# plot.hw
+plot.hw <- function(index=NULL,index.name=NULL,index.units=NULL,x.label=NULL,metadata) {
+        if(is.null(index)) stop("Need heatwave data to plot.")
+
+	definitions <- c("Tx90","Tn90","EHF","ECF")
+	aspects <- c("HWM","HWA","HWN","HWD","HWF")
+	units <- c("°C","°C","heatwaves","days","days")
+	Encoding(units) <- "UTF-8"
+
+	for (def in 1:length(definitions)) {
+		for (asp in 1:length(aspects)) {
+			if(all(is.na(index[def,asp,]))) { warning(paste("All NA values detected, not plotting ",aspects[asp],", ",definitions[def],".",sep="")) ; next }
+
+			plot.title <- paste("Station: ",title.station,sep="")
+			if(definitions[def]=="ECF") { namp <- paste(outjpgdir, paste(ofilename, "_", gsub("H","C",aspects[asp]),"_",definitions[def], "_ANN.jpg", sep = ""), sep = "/") }
+			else { namp <- paste(outjpgdir, paste(ofilename, "_",aspects[asp],"_",definitions[def], "_ANN.jpg", sep = ""), sep = "/") }
+			jpeg(file = namp, width = 1024, height = 768)
+			dev0 = dev.cur()
+
+			if(aspects[asp]=="HWM" && !definitions[def] == "ECF") { sub=paste("Index: ",aspects[asp],"-",definitions[def],". Heatwave Magnitude (mean temperature of all heatwave events)",sep="") } 
+			else if(aspects[asp]=="HWA" && !definitions[def] == "ECF"){ sub=paste("Index: ",aspects[asp],"-",definitions[def],". Heatwave Amplitude (peak temperature of the hottest heatwave event)",sep="") }
+			else if(aspects[asp]=="HWD" && !definitions[def] == "ECF"){ sub=paste("Index: ",aspects[asp],"-",definitions[def],". Heatwave Duration (length of longest heatwave event)",sep="") }
+			else if(aspects[asp]=="HWF" && !definitions[def] == "ECF"){ sub=paste("Index: ",aspects[asp],"-",definitions[def],". Heatwave Frequency (number of days contributing to heatwave events)",sep="") }
+			else if(aspects[asp]=="HWN" && !definitions[def] == "ECF"){ sub=paste("Index: ",aspects[asp],"-",definitions[def],". Heatwave Number (number of discreet heatwave events)",sep="") }
+
+			if(aspects[asp]=="HWM" && definitions[def] == "ECF") { sub=paste("Index: ",gsub("H","C",aspects[asp]),"-",definitions[def],". Coldwave Magnitude (mean temperature of all coldwave events)",sep="") } 
+			else if(aspects[asp]=="HWA" && definitions[def] == "ECF"){ sub=paste("Index: ",gsub("H","C",aspects[asp]),"-",definitions[def],". Coldwave Amplitude (minimum temperature of the coldest coldwave event)",sep="") }
+			else if(aspects[asp]=="HWD" && definitions[def] == "ECF"){ sub=paste("Index: ",gsub("H","C",aspects[asp]),"-",definitions[def],". Coldwave Duration (length of longest coldwave event)",sep="") }
+			else if(aspects[asp]=="HWF" && definitions[def] == "ECF"){ sub=paste("Index: ",gsub("H","C",aspects[asp]),"-",definitions[def],". Coldwave Frequency (number of days contributing to coldwave events)",sep="") }
+			else if(aspects[asp]=="HWN" && definitions[def] == "ECF"){ sub=paste("Index: ",gsub("H","C",aspects[asp]),"-",definitions[def],". Coldwave Number (number of discreet coldwave events)",sep="") }
+
+			if((definitions[def]=="EHF" || definitions[def]=="ECF") && any(aspects[asp]=="HWM",aspects[asp]=="HWA")) { unit = "°C^2" ; Encoding(unit) <- "UTF-8" } else unit = units[asp]
+			plotx((date.years), index[def,asp,], main = gsub('\\*', unit, plot.title),ylab = unit,xlab = x.label,index.name=index.name,sub=sub)
+
+			dev.set(which = pdf.dev)
+			plotx((date.years), index[def,asp,], main = gsub('\\*', unit, plot.title),ylab = unit,xlab = x.label,index.name=index.name,sub=sub)
+			dev.copy()
+			dev.off(dev0)
+
+			fit1<-suppressWarnings(lsfit((date.years),index[def,asp,]))
+			out1<<-ls.print(fit1,print.it=F)
+			cat(file=trend_file,paste(latitude,longitude,paste(definitions[def],aspects[asp],sep="."),metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
+		}
+	}
+}
+
+# write.precindex.csv
+write.precindex.csv <- function(index=NULL,index.name=NULL,spifactor=NULL,header="") {
+        if(is.null(index)) stop("Need SPEI data to write CSV file.")
+		colnames <- list("time",index.name)
+
+        # write 3 month data
+        nam1 <- paste(outinddir, paste(ofilename, "_3month_",index.name,"_MON.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(colnames, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind(unique(as.character(spifactor)),index[1,]), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+
+        # write 6 month data
+        nam1 <- paste(outinddir, paste(ofilename, "_6month_",index.name,"_MON.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(colnames, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind(unique(as.character(spifactor)),index[2,]), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+
+        # write 12 month data
+        nam1 <- paste(outinddir, paste(ofilename, "_12month_",index.name,"_MON.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(colnames, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind(unique(as.character(spifactor)),index[3,]), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        
+        # write custom-period data
+        nam1 <- paste(outinddir, paste(ofilename,"_",custom_SPEI, "month_",index.name,"_MON.csv", sep = ""), sep = "/")
+        write_header(nam1,header)
+        write.table(colnames, file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+        write.table(cbind(unique(as.character(spifactor)),index[4,]), file = nam1, append = TRUE, quote = FALSE, sep = ", ", na = "-99.9", row.names=FALSE,col.names = FALSE)
+}
+
+# plot.precindex
+# not sure how generic this process can be
+plot.precindex <- function(index=NULL,index.name=NULL,index.units=NULL,x.label=NULL,spifactor=NULL,sub="",times="",metadata) {
+        if(is.null(index)) stop("Need precip data to plot.")
+		Encoding(sub) <- "UTF-8"
+
+        for (time in 1:4) {
+			if(all(is.na(index[time,]))) { warning(paste("All NA values detected, not plotting ",times[time]," month ",index.name,".",sep="")) ; next }
+
+			subtmp=paste("Index: ",index.name," ",times[time]," month. ",sub,sep="")
+			namp <- paste(outjpgdir, paste(ofilename, "_",times[time],"month_",index.name,"_MON.jpg", sep = ""), sep = "/")
+			jpeg(file = namp, width = 1024, height = 768)
+
+			dev0 = dev.cur()
+	        plotx(unique(as.character(spifactor)), index[time,], main = paste(gsub('\\*', index.name, plot.title),sep=""),ylab = index.units,xlab = x.label,index.name=index.name,sub=subtmp)
+
+            dev.set(which = pdf.dev)
+            plotx(unique(as.character(spifactor)), index[time,], main = paste(gsub('\\*', index.name, plot.title),sep=""),ylab = index.units,xlab = x.label,index.name=index.name,sub=subtmp)
+            dev.copy()
+            dev.off(dev0)
+
+            fit1<-suppressWarnings(lsfit(1:length(unique(spifactor)),index[time,]))
+            out1<<-ls.print(fit1,print.it=F)
+            cat(file=trend_file,paste(latitude,longitude,paste(index.name,times[time],"month",sep="."),metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
+        }
+}
+
+# plot.index
+plot.call <- function(index=NULL,index.name=NULL,index.units=NULL,x.label=NULL,sub="",freq="annual") {
+        if(is.null(index.name) | is.null(index) | is.null(index.units)) stop("Need index data, index.name, index units and an x label in order to plot data.")
+
+		Encoding(sub) <- "UTF-8"
+		Encoding(index.units) <- "UTF-8"
+#	plot.title <- paste(title.station,index.name,sep=", ")
+	if(index.name=="wsdin") { tmp.name=paste("wsdi",wsdi_ud,sep="") ; sub=paste("Index: ",tmp.name,". Annual number of days with at least ",wsdi_ud," consecutive days when TX > 90th percentile",sep="") } 
+	else if (index.name=="csdin") { tmp.name=paste("csdi",csdi_ud,sep="") ; sub=paste("Index: ",tmp.name,". Annual number of days with at least ",csdi_ud," consecutive days when TN < 10th percentile",sep="")  }
+	else if (index.name=="rxnday") { tmp.name=paste("rx",rx_ud,"day",sep="") ; sub=paste("Index: ",tmp.name,". Maximum ",freq," ",rx_ud,"-day precipitation total",sep="")  }
+	else if (index.name=="rnnmm") { tmp.name=paste("r",rnnmm_ud,"mm",sep="") ; sub=paste("Index: ",tmp.name,". ",freq," number of days when precipitation >= ",rnnmm_ud,"mm",sep="")  }
+	else if (index.name=="ntxntn") { tmp.name=paste(txtn_ud,"tx",txtn_ud,"tn",sep="") ; sub=paste("Index: ",tmp.name,". Annual number of ",txtn_ud," consecutive days where both TX > 95th percentile and TN > 95th percentile",sep="")  }
+	else if (index.name=="ntxbntnb") { tmp.name=paste(txtn_ud,"txb",txtn_ud,"tnb",sep="") ; sub=paste("Index: ",tmp.name,". Annual number of ",txtn_ud," consecutive days where both TX < 5th percentile and TN < 5th percentile",sep="")  }
+	else if (index.name=="cddcold") { tmp.name=index.name ; sub=paste("Index: ",tmp.name,". Annual sum of TM - ",Tb_CDD,"°C (where ",Tb_CDD,"°C is a user-defined base temperature and should be smaller than TM)",sep="")  }
+	else if (index.name=="hddheat") { tmp.name=index.name ; sub=paste("Index: ",tmp.name,". Annual sum of ",Tb_HDD,"°C - TM (where ",Tb_HDD,"°C is a user-defined base temperature and should be larger than TM)",sep="")  }
+	else if (index.name=="gddgrow") { tmp.name=index.name ; sub=paste("Index: ",tmp.name,". Annual sum of TM - ",Tb_GDD,"°C (where ",Tb_GDD,"°C is a user-defined base temperature and should be smaller than TM)",sep="")  }
+	else { tmp.name = index.name ; sub=paste("Index: ",tmp.name,". ",sub,sep="") }
+
+	if(index.name=="tx95t") { freq="DAY" } 
+	else {
+		if(freq=="monthly") { freq="MON" }
+		else if(freq=="annual") { freq="ANN" }
+	}
+	
+	namp <- paste(outjpgdir, paste(ofilename, "_", tmp.name, "_", freq,".jpg", sep = ""), sep = "/")
+	jpeg(file = namp, width = 1024, height = 768)
+
+	dev0 = dev.cur()
+	if(index.name=="tx95t") { xdata <- 1:length(index) }
+	else xdata <- names(index)
+
+	plotx(xdata, index, main = gsub('\\*', tmp.name, plot.title),
+	  ylab = index.units,xlab = x.label,index.name=index.name,sub=sub)
+
+	dev.set(which = pdf.dev)
+	plotx(xdata, index, main = gsub('\\*', tmp.name, plot.title),
+	  ylab = index.units, xlab = x.label,index.name=index.name,sub=sub)
+	dev.copy()
+	dev.off(dev0)
+}
+
+# plotx
+# make plots, this is called twice to make jpg and pdf files. 
+plotx <- function (x0, y0, main = "", xlab = "", ylab = "", opt = 0,index.name=NULL,sub="")
+{
+	if(all(is.na(y0))) { print("NO DATA TO PLOT",quote=FALSE) ; return() }
+	Encoding(main) <- "UTF-8"
+	Encoding(sub) <- "UTF-8"
+# take a copy of input, so we will not modify the input by mistake.
+# And only take index values from the first non-NA value onwards, to avoid plotting long series of NA values.
+	nay <- which(!is.na(y0))
+	x <- x0[nay[1]:nay[length(nay)]]
+	y <- y0[nay[1]:nay[length(nay)]]
+
+	# james: i'm turning xpd off for barplots, so that i can clip the range w/o the bars
+	# running off the page. is this required?
+	par(oma = c(2, 1, 1, 1), xpd = FALSE,new=FALSE) #to enable things to be drawn outside the plot region
+	#names(y) <- c(strtrim(x,4))
+
+	# calculate range to limit the plots to (otherwise barplots are useless... they're in
+	# any non-barplots for consistency). also to allow for overlays like marking na points
+	# y.range <- range(y, na.rm = TRUE) #- 0.1 * (max(y, na.rm = TRUE) - min(y, na.rm = TRUE))
+	# x.range <- min(x, na.rm = TRUE)      # should be no missing data in the x series
+
+	if(barplot_flag)  # if true, we're doing a barplot
+	{
+		if(index.name=="spei" | index.name=="spi") {
+			bp <- barplot(y, main = main, cex.main = 2,ylim = range(y, na.rm = TRUE),xlab = NULL, ylab = ylab,cex.lab = 1.5, cex.axis = 1.5,xpd = FALSE,col=ifelse(y>0,"blue","red"),border=NA,space=c(0,0))
+			mtext(sub,cex=1)
+            # NA points
+            na.x <- bp
+            na.y <- rep(NA, length(na.x))
+            na.y[is.na(y)] <- par("usr")[3]
+            points(na.x, na.y, pch = 17, col = "blue", cex = 1.5)
+	                
+			subx = as.numeric(substr(x,1,4))
+			xind = which(subx%%5==0)
+			xtmp.int = (subx[xind])
+			axis(1,at=xind,labels=c(xtmp.int))
+
+            box()
+			xy <- cbind(bp,y)
+		} else {
+			plot(1:length(x), unname(y), main = main, cex.main = 2,ylim = range(unname(y), na.rm = TRUE),xaxt="n", xlab = "", ylab = ylab,type = "b", cex.lab = 1.5, cex.axis = 1.5,col="black")
+
+			subx = as.numeric(substr(x,1,4))
+			xind = which(subx%%5==0)
+			xtmp.int = (subx[xind])
+			axis(1,at=xind,labels=c(xtmp.int))
+
+			mtext(sub,cex=1)
+
+	        # NA points
+	        na.x <- x
+			na.y <- rep(NA, length(na.x))
+			na.y[is.na(y)] <- min(y, na.rm = TRUE)
+
+			points(1:length(na.x), na.y, pch = 17, col = "blue", cex = 1.5)
+			xy <- cbind(x, y)
+		}
+	} else            # if false, we're doing a regular (line) plot
+	{
+
+	}
+
+	if (opt == 1) return()  # no need to plot trend/fitting curve.
+	if (opt == 2)
+	{
+		abline(h = 0.)
+		return()
+	}  # for spei & spi only!
+
+	fit <- suppressWarnings(lsfit(1:length(x), y))		# assumes time intervals are always evenly spaced
+	out <<- ls.print(fit, print.it = FALSE)
+	r2 <- round(100 * as.numeric(out$summary[1, 2]), 1)
+	pval <- round(as.numeric(out$summary[1, 6]), 3)
+	beta <- round(as.numeric(out$coef.table[[1]][2, 1]), 3)
+	betaerr <- round(as.numeric(out$coef.table[[1]][2, 2]), 3)
+	if(index.name != "tx95t") {	abline(fit,lwd=2.0) }
+	xy <- na.omit(xy)
+	tmp_seq = 1:length(x)
+
+	tmp_lowess=lowess(tmp_seq[!is.na(y)], y[!is.na(y)])   #xy[,2])
+	lines(tmp_lowess, lwd = 3, lty = 2, col = "red")  # add fitting curve
+	if (sum(is.na(y) == FALSE) >= min_trend)
+	{
+		subtit <- paste("Linear trend slope=", beta, "   Slope error=", betaerr, ",   p-value=", pval)             # least squares regression
+	} else
+	{
+		subtit <- "No linear trend due to insufficient valid data points (10)"
+	}
+	title(sub = subtit, cex.sub = 1.5)
+
+	old.par = par()	# store par settings to plot legend outside figure margins
+	par(fig = c(0, 1, 0, 1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
+	plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
+	legend("bottomleft","locally weighted scatterplot smoothing",col = "red", lty = 2, lwd = 3, bty = "n")
+	legend("bottomright",paste("ClimPACT2 v ",version.climpact,sep=""),col = "white", lty = 2, lwd = 0, bty = "n")
+	suppressWarnings(par(old.par)) # restore previous par settings. Suppress warnings regarding parameters that cannot be set.
+}
+# end of plotx
+
+# Computation of the Standardized Precipitation-Evapotranspiration Index (SPEI).
+# Generic function
+cspei <- function(x, y,...) UseMethod('cspei')
+
+# Fit SPEI.
+cspei <- function(data, scale, kernel=list(type='rectangular',shift=0),
+	distribution='log-Logistic', fit='ub-pwm', na.rm=FALSE, 
+	ref.start=NULL, ref.end=NULL, x=FALSE, ...) {
+	scale <- as.numeric(scale)
+	na.rm <- as.logical(na.rm)
+	x <- as.logical(x)
+	#if (!exists("data",inherits=F) | !exists("scale",inherits=F)) {
+	#	stop('Both data and scale must be provided')
+	#}
+	if (sum(is.na(data))>0 & na.rm==FALSE) {
+		stop('Error: Data must not contain NAs')
+	}
+	if (distribution!='log-Logistic' & distribution!='Gamma' & distribution!='PearsonIII') {
+		stop('Distrib must be one of "log-Logistic", "Gamma" or "PearsonIII"')
+	}
+	if (fit!='max-lik' & fit!='ub-pwm' & fit!='pp-pwm') {
+		stop('Method must be one of "ub-pwm" (default), "pp-pwm" or "max-lik"')
+	}
+	if ({!is.null(ref.start) & length(ref.start)!=2} | {!is.null(ref.end) & length(ref.end)!=2}) {
+		stop('Start and end of the reference period must be a numeric vector of length two.')
+	}
+	if (!is.ts(data)) {
+		data <- ts(as.matrix(data), frequency = 12)
+	} else {
+		data <- ts(as.matrix(data), frequency=frequency(data), start=start(data))
+	}
+	m <- ncol(data)
+	fr <- frequency(data)
+
+	if (distribution=='Gamma') {
+		coef <- array(NA,c(2,m,fr),list(par=c('alpha','beta'),colnames(data),NULL))
+	}
+	if (distribution=='log-Logistic') {
+		coef <- array(NA,c(3,m,fr),list(par=c('xi','alpha','kappa'),colnames(data),NULL))
+	}
+	if (distribution=='PearsonIII') {
+		coef <- array(NA,c(3,m,fr),list(par=c('mu','sigma','gamma'),colnames(data),NULL))
+	}
+	
+	# Loop through series (columns in data)
+	if (!is.null(ref.start) & !is.null(ref.end)) {
+		data.fit <- window(data,ref.start,ref.end)	
+	} else {
+		data.fit <- data
+	}
+	std <- data*NA
+	for (s in 1:m) {
+		# Cumulative series (acu)
+		acu <- data.fit[,s]*NA
+		acu.pred <- std[,s]
+		if (scale>1) {
+			wgt <- kern(scale,kernel$type,kernel$shift)
+			for (t in scale:length(acu)) {
+				acu[t] <- sum(data.fit[t:{t-scale+1},s]*wgt)
+			} # next t
+			for (t in scale:length(acu.pred)) {
+				acu.pred[t] <- sum(data[t:{t-scale+1},s]*wgt)
+			} # next t
+		} else {
+			acu <- data.fit[,s]
+			acu.pred <- data[,s]
+		}
+
+		# Loop through the months
+		for (c in (1:fr)) {
+			# Filter month m, excluding NAs
+			f <- seq(c,length(acu),fr)
+			f <- f[!is.na(acu[f])]
+			ff <- seq(c,length(acu.pred),fr)
+			ff <- ff[!is.na(acu.pred[ff])]
+			
+
+			# Monthly series, sorted
+			month <- sort(acu[f])
+
+			if (length(month)==0 | is.na(sd(month,na.rm=TRUE))) {
+				std[f] <- NA
+				next()
+			}
+		
+			if (fit=='pp-pwm') {
+				pwm <- pwm.pp(month,-0.35,0)
+			} else {
+				pwm <- pwm.ub(month)
+			}
+			lmom <- pwm2lmom(pwm)
+			if (!are.lmom.valid(lmom) | is.nan(sum(lmom[[1]]))) {
+				next()
+			}
+	
+			if (distribution=='log-Logistic') {
+				# Fit a generalized log-Logistic distribution
+				llpar <- parglo(lmom)
+				if (fit=='max-lik') {
+					llpar <- parglo.maxlik(month,llpar$para)
+				}
+				# Compute standardized values
+				std[ff,s] <- qnorm(pglo(acu.pred[ff],llpar))
+				coef[,s,c] <- llpar$para
+			} else {
+				# Probability of monthly precipitation = 0 (pze)
+				zeros <- sum(month==0)
+				pze <- sum(month==0)/length(month)
+# 				month <- sort(month)
+				if (distribution =='Gamma') {
+					# Fit a Gamma distribution
+					gampar <- pargam(lmom.ub(month))
+					# Compute standardized values
+					std[ff,s] <- qnorm(cdfgam(acu.pred[ff],gampar))
+					std[ff,s] <- qnorm(pze + (1-pze)*pnorm(std[ff,s]))
+					coef[,s,c] <- gampar$para
+				} else if (distribution =='PearsonIII') {
+					# Fit a PearsonIII distribution
+					p3par <- parpe3(lmom.ub(month))
+					# Compute standardized values
+					std[ff,s] <- qnorm(cdfpe3(acu.pred[ff],p3par))
+					std[ff,s] <- qnorm(pze + (1-pze)*pnorm(std[ff,s]))
+					coef[,s,c] <- parpe3$para
+				} # end if
+			} # end if
+		} # next c (month)
+
+		#std[is.nan(std[,s]) | is.nan(std[,s]-std[,s]),s] <- NA
+		#std[,s] <- std[,s]-mean(std[,s],na.rm=TRUE)
+		#std[,s] <- std[,s]/sd(std[,s],na.rm=TRUE)
+	} # next s (series)
+	#colnames(std) <- rep('SPEI',m)
+	colnames(std) <- colnames(data)
+
+	z <- list(call=match.call(expand.dots=FALSE),
+		fitted=std,coefficients=coef,scale=scale,kernel=list(type=kernel$type,
+		shift=kernel$shift,values=kern(scale,kernel$type,kernel$shift)),
+		distribution=distribution,fit=fit,na.action=na.rm)
+	if (x) z$data <- data
+	if (!is.null(ref.start)) z$ref.period <- rbind(ref.start,ref.end)
+
+	class(z) <- 'spei'
+	return(z)
+}
+
+# Generic function
+cspi <- function(x, y,...) UseMethod('cspi')
+
+# Fit SPI (previously spi() function). Default method.
+cspi <- function(data, scale, kernel=list(type='rectangular',shift=0),
+	distribution='Gamma', fit='ub-pwm', na.rm=TRUE,
+	ref.start=NULL, ref.end=NULL, x=FALSE, ...) {
+	return(cspei(data, scale, kernel, distribution, fit, na.rm,
+	ref.start, ref.end, x))
+}
+
+
+
 
