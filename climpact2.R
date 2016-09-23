@@ -470,12 +470,8 @@ load.data.qc <- function(user.file, outputDir, latitude, longitude, station.entr
 {
     outdirtmp <- outputDir
     ofilename <- station.entry
-    print("ofilename")
-    print(ofilename)
 	assign('outdirtmp',outdirtmp,envir=.GlobalEnv)
 	assign('ofilename',ofilename,envir=.GlobalEnv)
-
-	get.file.path(outputDir)
 
 	user.data <- read.user.file(user.file)
 	error <- draw.step1.interface(user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end)
@@ -1594,7 +1590,4 @@ cspi <- function(data, scale, kernel=list(type='rectangular',shift=0),
 	return(cspei(data, scale, kernel, distribution, fit, na.rm,
 	ref.start, ref.end, x))
 }
-
-
-
 

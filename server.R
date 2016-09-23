@@ -41,7 +41,6 @@ server <- function(input, output, session) {
     })
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
-        cat("Doing quality control")
         source("climpact2.R")
         # Set up globals
         package.check()
@@ -52,8 +51,9 @@ server <- function(input, output, session) {
         dataFileMissing()
 
         dataFile <- input$dataFile
-        if (is.null(dataFile))
+        if (is.null(dataFile)) {
           return(NULL)
+        }
 
         latitude <- input$stationLat
         longitude <- input$stationLon
@@ -85,6 +85,7 @@ server <- function(input, output, session) {
                 Sys.sleep(0.1)
             }
         })
+        cat("Finished doing quality control")
 
         return("")
     })
@@ -106,8 +107,6 @@ server <- function(input, output, session) {
         var.choice <- input$custVariable
         op.choice <- input$custOperation
         constant.choice <- input$custThreshold
-
-        print('Calculating Indices.')
 
         error <- draw.step2.interface(plot.title, wsdi_ud, csdi_ud, rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice)
 
