@@ -56,8 +56,8 @@ server <- function(input, output, session) {
         base.year.start <- as.numeric(format(base.year.start, "%Y"));
 		base.year.end <-as.numeric(format(base.year.end, "%Y"));
 
-        tmpFile <- tempfile('./tmp', tmpdir='tmp')
-        print(tmpFile)
+        outputDir <- 'output'
+        dir.create(outputDir)
 
         # input$dataFile will be NULL initially. After the user selects
         # and uploads a file, it will be a data frame with 'name',
@@ -65,7 +65,7 @@ server <- function(input, output, session) {
         # column will contain the local filenames where the data can
         # be found.
 
-        error <- load.data.qc(dataFile$datapath, tmpFile, latitude, longitude, stationName, base.year.start,base.year.end)
+        error <- load.data.qc(dataFile$datapath, outputDir, latitude, longitude, stationName, base.year.start,base.year.end)
         if (error !=  "") {
             return(error)
         }

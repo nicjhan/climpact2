@@ -468,23 +468,17 @@ pplotts <- function(var = "prcp", type = "h", tit = NULL,cio,metadata)
 	}
 }
 
-# Creates an array of strings, each string containing a folder in the path to the user's file.
-# Globally assigns two variables: the array of strings and the final string (i.e. the file name)
-# This should be improved in the future (global variables should not be relied on)
-# The 'graphics' parameter indicates whether a progress bar is drawn to the screen via tcltk
-get.file.path <- function(tmpfile) {
-	outdirtmp<-strsplit(tmpfile,"/")[[1]]
-	file.name=outdirtmp[length(outdirtmp)]
-	e=strsplit(file.name,"\\.")[[1]]
-	ofilename=substr(file.name,start=1,stop=nchar(file.name)-nchar(e[length(e)])-1)
+# This function calls the major routines involved in reading the user's file, creating the climdex object and running quality control
+load.data.qc <- function(user.file, outputDir, latitude, longitude, station.entry, base.year.start,base.year.end)
+{
+    outdirtmp <- outputDir
+    ofilename <- station.entry
+    print("ofilename")
+    print(ofilename)
 	assign('outdirtmp',outdirtmp,envir=.GlobalEnv)
 	assign('ofilename',ofilename,envir=.GlobalEnv)
-}
 
-# This function calls the major routines involved in reading the user's file, creating the climdex object and running quality control
-load.data.qc <- function(user.file, tmpfile, latitude, longitude, station.entry, base.year.start,base.year.end)
-{
-	get.file.path(tmpfile)
+	get.file.path(outputDir)
 
 	user.data <- read.user.file(user.file)
 	error <- draw.step1.interface(user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end)
@@ -499,7 +493,7 @@ get.qc.dir <- function()
 # Given a user's RClimdex text file path, read in, convert -99.9 to NA and
 # return contents as array of 6 columns.
 read.user.file <- function(user.file) {
-	temp.filename = paste(user.file,".temporary",sep="")
+	temp.filename = tempfile()
 	raw.table = readLines(user.file)
 	newtext = gsub(",","\t",raw.table)
 	cat(newtext,file=temp.filename,sep="\n")
@@ -517,28 +511,17 @@ read.user.file <- function(user.file) {
 # Create directories for output. Requires get.file.path to be called beforehand. That functionality was moved to a separate function
 # so that the directory could be modified by the user in the ClimPACT2 GUI.
 # Undesirably these are currently kept as global variables.
-create.dir <- function(user.file) {
-	# create directory names
-	if(length(outdirtmp)<=2) {
-		dirsplit<-strsplit(user.file,":")[[1]][1]
-		outinddir<-paste(dirsplit,"indices",sep=":/")
-		outlogdir<-paste(dirsplit,"qc",sep=":/")
-		outjpgdir<-paste(dirsplit,"plots",sep=":/")
-		outtrddir<-paste(dirsplit,"trend",sep=":/")
-		outthresdir<-paste(dirsplit,"thres",sep=":/")  # to save *_thres.csv files   
-		outqcdir<-paste(dirsplit,"qc",sep=":/")   # save results from extraqc
-	} else{
-		outdir<-outdirtmp[1]
-		for(i in 2:(length(outdirtmp)-1))
-		outdir<-paste(outdir,outdirtmp[i],sep="/")
-		outinddir<-paste(outdir,"indices",sep="/")
-		outlogdir<-paste(outdir,"qc",sep="/")
-		outjpgdir<-paste(outdir,"plots",sep="/")
-		outtrddir<-paste(outdir,"trend",sep="/")
-		outqcdir<-paste(outdir,"qc",sep="/")    # save results from extraqc
-		outthresdir<-paste(outdir,"thres",sep="/")   # to save *_thres.csv files 
-	}
-	
+create.dir <- function() {
+    outdir<-outdirtmp
+    print("outdir")
+    print(outdir)
+    outinddir<-paste(outdir,"indices",sep="/")
+    outlogdir<-paste(outdir,"qc",sep="/")
+    outjpgdir<-paste(outdir,"plots",sep="/")
+    outtrddir<-paste(outdir,"trend",sep="/")
+    outqcdir<-paste(outdir,"qc",sep="/")    # save results from extraqc
+    outthresdir<-paste(outdir,"thres",sep="/")   # to save *_thres.csv files 
+
 	# Create subdirectories if non-existent
 	if(!file.exists(paste(outinddir,ofilename,sep="/"))) { dir.create(outinddir,showWarnings=FALSE) ; dir.create(paste(outinddir,ofilename,sep="/")) }
 	if(!file.exists(paste(outlogdir,ofilename,sep="/"))) { dir.create(outlogdir,showWarnings=FALSE) ; dir.create(paste(outlogdir,ofilename,sep="/")) }
@@ -618,16 +601,15 @@ check.and.create.dates <- function(user.data) {
 # This function draws the "Step 1" interface that lets user enter station metadata and run QC on their file.
 draw.step1.interface <- function(user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end) {
     ofilename <<- station.entry
-    outdirtmp[length(outdirtmp)] <<- ofilename
 
     assign("base.year.start",base.year.start,envir=.GlobalEnv)
     assign("base.year.end",base.year.end,envir=.GlobalEnv)
 
     user.data <- check.and.create.dates(user.data)
-    create.dir(user.file)
+    create.dir()
     metadata <- create.metadata(latitude,longitude,base.year.start,base.year.end,user.data$dates,ofilename)
     assign("metadata",metadata,envir=.GlobalEnv)
-    error <- QC.wrapper(metadata,user.data,user.file)
+    error <- QC.wrapper(metadata,user.data, user.file)
     return(error)
 }
 
@@ -763,7 +745,9 @@ QC.wrapper <- function(metadata, user.data, user.file) {
     print(outlogdir)
 
     # extraQC is called here. NOTE the default outrange=3 in original verson.
-	error <- allqc(master = paste(user.file,".temporary",sep=""), output = outqcdir, outrange = 3) #stddev.crit)
+    temp.file <- tempfile()
+    file.copy(user.file, temp.file)
+	error <- allqc(master = temp.file, output = outqcdir, outrange = 3) #stddev.crit)
 
 	##############################	
 	# Write out NA statistics.
@@ -771,7 +755,7 @@ QC.wrapper <- function(metadata, user.data, user.file) {
 
 	##############################	
 	# Remove temporary file
-	#system(paste("rm ",user.file,".temporary",sep=""))
+	#system(paste("rm ", user.file,".temporary",sep=""))
 
     return(error)
 
