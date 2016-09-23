@@ -108,8 +108,19 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
         fluidRow(
             column(6,
                 h4('2. Calculate Indices'),
-                wellPanel(
-                    actionButton("calculateIndices", "Calculate Indices")
+                conditionalPanel(
+                    condition = "output.qualityControlError == ''",
+                    wellPanel(
+                        actionButton("calculateIndices", "Calculate Indices"),
+                        textOutput("indiceCalculationError")
+                    )
+                ),
+                conditionalPanel(
+                    condition = "output.qualityControlError != ''",
+                    wellPanel(
+                        "Please complete ",
+                        tags$b("Load and Check Data")
+                    )
                 )
             ),
             column(6,

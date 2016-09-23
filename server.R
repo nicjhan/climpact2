@@ -1,7 +1,7 @@
 
 server <- function(input, output, session) {
 
-    # Validate the stationName and dataFile fields. FIXME: do this properly
+    # Validate the stationName and dataFile fields.
     stationNameMissing <- reactive({
         validate(
             need(input$stationName != "", message="Please enter a station name")
@@ -17,8 +17,18 @@ server <- function(input, output, session) {
         )
         ""
     })
-    output$qualityControlError <- eventReactive(input$doQualityControl, {
+    output$qualityControlError <- eventReactive(input$calculateIndices, {
         dataFileMissing()
+    })
+    # Validate the plot title.
+    plotTitleMissing <- reactive({
+        validate(
+            need(input$plotTitle != "", message="Please enter a plotting title")
+        )
+        ""
+    })
+    output$indiceCalculationError <- eventReactive(input$calculateIndices, {
+        plotTitleMissing()
     })
 
     output$qcLink <- renderText({
@@ -81,7 +91,7 @@ server <- function(input, output, session) {
 
     output$indiceCalculationError <- eventReactive(input$calculateIndices, {
 
-        print('Hello')
+        plotTitleMissing()
 
         plot.title <- input$plotTitle
         wsdi_ud <- input$wsdin
@@ -109,8 +119,6 @@ server <- function(input, output, session) {
                 Sys.sleep(0.1)
             }
         })
-
-        print('Finish calculating Indices.')
 
         return("")
     })
