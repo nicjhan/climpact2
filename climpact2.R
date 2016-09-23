@@ -487,6 +487,27 @@ get.qc.dir <- function()
     return(outqcdir)
 }
 
+get.indices.dir <- function()
+{
+    return(outinddir)
+}
+
+get.plots.dir <- function()
+{
+    return(outjpgdir)
+}
+
+get.trends.dir <- function()
+{
+    return(outtrddir)
+}
+
+get.thresh.dir <- function()
+{
+    return(outthresdir)
+}
+
+
 # Given a user's RClimdex text file path, read in, convert -99.9 to NA and
 # return contents as array of 6 columns.
 read.user.file <- function(user.file) {

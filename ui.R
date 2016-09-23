@@ -43,9 +43,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     conditionalPanel(
                         condition = "output.qualityControlError == ''",
                         wellPanel(
-                            "Please view ",
-                            uiOutput("qcLink"),
-                            " and carefully evaluate before continuing. Refer to Appendix C in the ClimPACT2 user guide for help."
+                            uiOutput("qcLink")
                         )
                     ),
                     conditionalPanel(
@@ -119,10 +117,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 conditionalPanel(
                     condition = "output.indiceCalculationError == ''",
                     wellPanel(
-                            a("View", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                            " or ",
-                            a("Download", target="_blank", href="http://climpact2-indice-plots.s3-website-us-west-2.amazonaws.com/"),
-                            " plots. "
+                        uiOutput("indicesLink")
                     )
                 ),
                 conditionalPanel(

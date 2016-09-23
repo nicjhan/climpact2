@@ -22,11 +22,12 @@ server <- function(input, output, session) {
     })
 
     output$qcLink <- renderText({
-       #a("view QC output", target="_blank", href=
         qcDir <- get.qc.dir()
-        print("QC dir")
-        print(qcDir)
-        HTML(paste("<a target=\"_blank\" href=\"http://localhost:4199/",qcDir,"/\">QC output</a>", sep=""))
+        HTML(paste("Please view the <a target=\"_blank\" href=\"http://localhost:4199/",qcDir,"/\">QC output</a> and carefull evaluate before continuing.  Refer to Appendix C in the ClimPACT2 user guide for help.", sep=""))
+    })
+
+    output$indicesLink <- renderText({
+        HTML(paste("View <a target=\"_blank\" href=\"http://localhost:4199/",get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=\"http://localhost:4199/",get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=\"http://localhost:4199/",get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=\"http://localhost:4199/",get.thresh.dir(),"/\">trends</a> OR download all.", sep=""))
     })
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
