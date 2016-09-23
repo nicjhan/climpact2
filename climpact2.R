@@ -2,37 +2,51 @@
 # extraQC code, taken from the "rclimdex_extraqc.r" package, 
 # Quality Control procedures programed by Enric Aguilar (C3, URV, Tarragona, Spain) and 
 # and Marc Prohom, (Servei Meteorologic de Catalunya). Edited by nherold to output to .csv (Jan 2016).
-allqc <- function (master, output, outrange = 4)
+allqc <- function (progress, master, output, outrange = 4)
 {
 	output <- paste(output, "/", ofilename, sep = "")
 	# fourboxes will produce boxplots for non-zero precip, tx, tn, dtr using the IQR entered previously
 	# the plot will go to series.name_boxes.pdf
 	# outliers will be also listed on a file (series.name_outliers.txt)
 	fourboxes(master, output, save = 1, outrange)
-	
+
+    progress$inc(0.05)
+
 	# Will plot a histogram of the decimal point to see rounding problems, for prec, tx, tn
 	# The plot will go to series.name_rounding.pdf. Needs some formal arrangements (title, nice axis, etc)
 	roundcheck(master, output, save = 1)
-	
+
+    progress$inc(0.05)
+
 	# will list when tmax <= tmin. Output goes to series.name_tmaxmin.txt
 	tmaxmin(master, output)
-	
+
+    progress$inc(0.05)
+
 	# will list values exceeding 200 mm or temperatures with absolute values over 50. Output goes to 
 	# series.name_toolarge.txt
 	humongous(master, output)
-	
+
+    progress$inc(0.05)
+
 	# 'Annual Time series' constructed with boxplots. Helps to identify years with very bad values
 	# Output goes to series.name_boxseries.pdf
 	boxseries(master, output, save = 1)
-	
+
+    progress$inc(0.05)
+
 	# Lists duplicate dates. Output goes to series.name_duplicates.txt	
 	duplivals(master, output)
-	
+
+    progress$inc(0.05)
+
 	# The next two functions (by Marc Prohom, Servei Meteorologic de Catalunya) identify consecutive tx and tn values with diferences larger than 20
 	# Output goes to series.name_tx_jumps.txt and series.name_tn_jumps.txt. The first date is listed. 
 	jumps_tx(master, output)
 	jumps_tn(master, output)
-	
+
+    progress$inc(0.05)
+
 	# The next two functions (by Marc Prohom, Servei Meteorologic de Catalunya)identify 
 	# series of 3 or more consecutive identical values. The first date is listed. 
 	# Output goes to series.name_tx_flatline.txt  and series.name_tx_flatline.txt
@@ -466,7 +480,7 @@ pplotts <- function(var = "prcp", type = "h", tit = NULL,cio,metadata)
 }
 
 # This function calls the major routines involved in reading the user's file, creating the climdex object and running quality control
-load.data.qc <- function(user.file, outputDir, latitude, longitude, station.entry, base.year.start,base.year.end)
+load.data.qc <- function(progress, user.file, outputDir, latitude, longitude, station.entry, base.year.start,base.year.end)
 {
     outdirtmp <- outputDir
     ofilename <- station.entry
@@ -474,7 +488,10 @@ load.data.qc <- function(user.file, outputDir, latitude, longitude, station.entr
 	assign('ofilename',ofilename,envir=.GlobalEnv)
 
 	user.data <- read.user.file(user.file)
-	error <- draw.step1.interface(user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end)
+    # Increment progress bar.
+    progress$inc(0.1)
+
+	error <- draw.step1.interface(progress, user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end)
     return(error)
 }
 
@@ -613,7 +630,7 @@ check.and.create.dates <- function(user.data) {
 }
 
 # This function draws the "Step 1" interface that lets user enter station metadata and run QC on their file.
-draw.step1.interface <- function(user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end) {
+draw.step1.interface <- function(progress, user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end) {
     ofilename <<- station.entry
 
     assign("base.year.start",base.year.start,envir=.GlobalEnv)
@@ -623,7 +640,9 @@ draw.step1.interface <- function(user.data, user.file, latitude, longitude, stat
     create.dir()
     metadata <- create.metadata(latitude,longitude,base.year.start,base.year.end,user.data$dates,ofilename)
     assign("metadata",metadata,envir=.GlobalEnv)
-    error <- QC.wrapper(metadata,user.data, user.file)
+
+    progress$inc(0.1)
+    error <- QC.wrapper(progress, metadata,user.data, user.file)
     return(error)
 }
 
@@ -660,7 +679,7 @@ create.climdex.input <- function(user.data,metadata) {
 #    - metadata: output of create.metadata()
 #    - data: output of convert.user.file
 #    - graphics: boolean for whether running with graphics or not (determines whether progress bars, message windows etc. are shown).
-QC.wrapper <- function(metadata, user.data, user.file) {
+QC.wrapper <- function(progress, metadata, user.data, user.file) {
 
 	# Check base period is valid when no thresholds loaded
 	if(is.null(quantiles)) {
@@ -704,6 +723,8 @@ QC.wrapper <- function(metadata, user.data, user.file) {
 	nam1 <- paste(outthresdir, paste(ofilename, "_thres.csv", sep = ""),sep="/")
 	write.table(as.data.frame(thres), file = nam1, append = FALSE, quote = FALSE, sep = ", ", na = "NA", col.names = c(paste("tmax",names(cio@quantiles$tmax$outbase),sep="_"),paste("tmin",names(cio@quantiles$tmin$outbase),sep="_"),
 	paste("tavg",names(cio@quantiles$tavg$outbase),sep="_"),paste("prec",names(cio@quantiles$prec),sep="_"),"HW_TN90","HW_TX90","HW_TAVG90"),row.names=FALSE) 
+
+    progress$inc(0.1)
 	
     # write raw tmin, tmax and prec data for future SPEI/SPI calcs
 	yeardate2 <- format(cio@dates,format="%Y")
@@ -713,6 +734,8 @@ QC.wrapper <- function(metadata, user.data, user.file) {
 	prec=cio@data$prec[which(yeardate2 >= metadata$base.start & yeardate2 <= metadata$base.end)])
 	nam2 <- paste(outthresdir, paste(ofilename, "_thres_spei.csv", sep = ""),sep="/")
     write.table(as.data.frame(thres2), file = nam2, append = FALSE, quote = FALSE, sep = ", ", na = "NA", col.names = c("Base_period_dates","Base_period_tmin","Base_period_tmax","Base_period_prec"),row.names=FALSE)
+
+    progress$inc(0.1)
 
     ##############################
 	# Set some text options
@@ -741,16 +764,25 @@ QC.wrapper <- function(metadata, user.data, user.file) {
 	nam1 <- paste(outlogdir, paste(ofilename, "_tmaxPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
 	pdf(file = nam1)
+
+    progress$inc(0.1)
+
 	pplotts(var = "tmax", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 	nam1 <- paste(outlogdir, paste(ofilename, "_tminPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
 	pdf(file = nam1)
+
+    progress$inc(0.1)
+
 	pplotts(var = "tmin", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 	nam1 <- paste(outlogdir, paste(ofilename, "_dtrPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
 	pdf(file = nam1)
+
+    progress$inc(0.1)
+
 	pplotts(var = "dtr", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 
@@ -761,7 +793,7 @@ QC.wrapper <- function(metadata, user.data, user.file) {
     # extraQC is called here. NOTE the default outrange=3 in original verson.
     temp.file <- tempfile()
     file.copy(user.file, temp.file)
-	error <- allqc(master = temp.file, output = outqcdir, outrange = 3) #stddev.crit)
+	error <- allqc(progress, master = temp.file, output = outqcdir, outrange = 3) #stddev.crit)
 
 	##############################	
 	# Write out NA statistics.
@@ -810,7 +842,7 @@ global.vars <- function() {
 
 # This function houses the beginning screen for "Step 2" in the GUI (i.e. calculating the indices). It reads in user preferences for the indices 
 # and calls the index functions for calculation and plotting.
-draw.step2.interface <- function(plot.title, wsdi_ud, csdi_ud, rx_ud, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice) {
+draw.step2.interface <- function(progress, plot.title, wsdi_ud, csdi_ud, rx_ud, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice) {
    
     assign('plot.title',plot.title,envir=.GlobalEnv)
     
@@ -831,13 +863,13 @@ draw.step2.interface <- function(plot.title, wsdi_ud, csdi_ud, rx_ud, txtn_ud, r
     print("var.choice")
     print(var.choice)
 
-    index.calc(metadata)
+    index.calc(progress, metadata)
   
 } # end of draw.step2.interface
 
 # This function loops through all indices and calls the appropriate functions to calculate them.
 # It contains functions for some indices that are not kept in climpact2.etsci-functions.r. This is because they are specific to the GUI.
-index.calc<-function(metadata) {
+index.calc<-function(progress, metadata) {
 	calculate.custom.index <- function() {
 		print("calculating custom index",quote=FALSE)
 		for (frequency in c("monthly","annual")) {
@@ -859,6 +891,8 @@ index.calc<-function(metadata) {
 			cat(file=trend_file,paste(metadata$lat,metadata$lon,paste(var.choice,op.choice2,constant.choice,sep=""),metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
 		}
 	}
+
+    progress$inc(0.01)
 
 	calculate.hw <- function() {
 		# If heatwave previous percentiles have been read in by user then use these in heatwave calculations, otherwise let climdex.hw calculate percentiles using currently loaded data.
@@ -1053,11 +1087,15 @@ index.calc<-function(metadata) {
 	# create a list of indices that do not require a 'frequency' parameter
 	no.freq.list = c("r95ptot","r99ptot","sdii","hddheat","cddcold","gddgrow","r95p","r99p","gsl","spi","spei","hw","wsdi","wsdin","csdi","csdin","ntxntn","ntxbntnb")
 
+    progress$inc(0.01)
+
 	#####################################
 	# MEAT DONE HERE
 	# Loop through and calculate and plot each index
 
 	for (i in 1:length(index.list$ID)) {
+        progress$inc(0.01)
+
 		print(paste("calculating",index.list$ID[i]),quote=FALSE)
 		tmp.index.name = as.character(index.list$ID[i])
 		tmp.index.def = as.character(index.list$Definition[i])
@@ -1116,9 +1154,14 @@ index.calc<-function(metadata) {
 		plot.call(index.stored,index.name=tmp.index.name,index.units=as.character(index.list$Units[i]),x.label="Years",sub=tmp.index.def,freq=frequency)
 		cat(file=trend_file,paste(tmp.index.name,metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
 		remove(index.parameter)
+
 	}
+    progress$inc(0.05)
+
 	if(length(op.choice)==0 || length(var.choice)==0) { print("no custom index to calculate",quote=FALSE) } else { calculate.custom.index() }
 	dev.off(pdf.dev)
+
+    progress$inc(0.01)
 }
 # end of index.calc 
 

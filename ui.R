@@ -27,15 +27,16 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 textInput("stationName", "Station name:"),
                 numericInput("stationLat", "Latitude:", 0, min = -90, max = 90),
                 numericInput("stationLon", "Longitude:", 0, min = 0, max = 360),
-                dateRangeInput('dateRange', label = 'Base period:', startview="decade",
-                              start = as.Date("2010-01-01", "%Y-%m-%d"), end = as.Date("2014-01-01", "%Y-%m-%d"))
+                numericInput("startYear", "Start year:", 1970),
+                numericInput("endYear", "End year:", 1970)
+                #dateRangeInput('dateRange', label = 'Base period:', startview="decade",
+                #              start = as.Date("2010-01-01", "%Y-%m-%d"), end = as.Date("2014-01-01", "%Y-%m-%d"))
             )),
             fluidRow(
                 column(4,
                     h4('3. Process Data and Quality Control'),
                     wellPanel(
                     actionButton("doQualityControl", "Process"),
-                    actionButton("cancelQualityControl", "Cancel"),
                     textOutput("qualityControlError")
                 )),
                 column(4,
@@ -69,9 +70,9 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
         fluidRow(
             column(12,
                 "See ",
-                a("Section 3.5", target="_blank", href="https://github.com/ARCCSS-extremes/climpact2/blob/master/user_guide/ClimPACT2_user_guide.htm"),
+                a("Section 3.5", target="_blank", href="http://localhost:4199/user_guide/html/GUI.htm"),
                 " of the ",
-                a("ClimPact2 user guide", target="_blank", href="https://github.com/ARCCSS-extremes/climpact2/blob/master/user_guide/ClimPACT2_user_guide.htm"),
+                a("ClimPact2 user guide", target="_blank", href="http://localhost:4199/user_guide/ClimPACT2_user_guide.htm"),
                 " for help with the following fields.",
                 br(),
                 br()

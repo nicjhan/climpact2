@@ -15,6 +15,7 @@ Use the navigation bar at the top of the page to perform these steps.
 
 ```{bash}
 $ git clone https://github.com/nicjhan/climpact2-app.git
+$ cd climpact2-app
 $ R
 ```
 
@@ -22,8 +23,8 @@ $ R
 > install.packages('shiny')
 > install.packages('shinythemes')
 > install.packages('markdown')
-> library(shiny)
-> runApp('climpact2-app')
+> install.packages('servr')
+> source('startapp.R')
 ```
 The app will automatically start in your default browser.
 

@@ -31,12 +31,22 @@ server <- function(input, output, session) {
         plotTitleMissing()
     })
 
+    datasetChanges <- reactive({
+        input$doQualityControl
+    })
+
+    indiceChanges <- reactive({
+        input$calculateIndices
+    })
+
     output$qcLink <- renderText({
+        datasetChanges()
         qcDir <- get.qc.dir()
-        HTML(paste("Please view the <a target=\"_blank\" href=\"http://localhost:4199/",qcDir,"/\">QC output</a> and carefull evaluate before continuing.  Refer to Appendix C in the ClimPACT2 user guide for help.", sep=""))
+        HTML(paste("Please view the <a target=\"_blank\" href=\"http://localhost:4199/",qcDir,"/\">QC output</a> and carefull evaluate before continuing. Refer to <a target=\"_blank\" href=\"http://localhost:4199/user_guide/html/AppendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=\"http://localhost:4199/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
     })
 
     output$indicesLink <- renderText({
+        indiceChanges()
         HTML(paste("View <a target=\"_blank\" href=\"http://localhost:4199/",get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=\"http://localhost:4199/",get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=\"http://localhost:4199/",get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=\"http://localhost:4199/",get.thresh.dir(),"/\">trends</a> OR download all.", sep=""))
     })
 
@@ -58,10 +68,14 @@ server <- function(input, output, session) {
         latitude <- input$stationLat
         longitude <- input$stationLon
         stationName <- input$stationName
-        base.year.start <- input$dateRange[1]
-        base.year.end <- input$dateRange[2]
-        base.year.start <- as.numeric(format(base.year.start, "%Y"));
-		base.year.end <-as.numeric(format(base.year.end, "%Y"));
+
+        base.year.start <- input$startYear
+        base.year.end <- input$endYear
+
+        #base.year.start <- input$dateRange[1]
+        #base.year.end <- input$dateRange[2]
+        #base.year.start <- as.numeric(format(base.year.start, "%Y"));
+		#base.year.end <-as.numeric(format(base.year.end, "%Y"));
 
         outputDir <- 'output'
         dir.create(outputDir)
@@ -72,20 +86,14 @@ server <- function(input, output, session) {
         # column will contain the local filenames where the data can
         # be found.
 
-        error <- load.data.qc(dataFile$datapath, outputDir, latitude, longitude, stationName, base.year.start,base.year.end)
+        progress <- shiny::Progress$new()
+        on.exit(progress$close())
+        progress$set(message="Processing data", value=0)
+
+        error <- load.data.qc(progress, dataFile$datapath, outputDir, latitude, longitude, stationName, base.year.start,base.year.end)
         if (error !=  "") {
             return(error)
         }
-
-        withProgress(message = "Processing data", value = 0, {
-            n <- 20
-            for (i in 1:n) {
-                # Increment the progress bar
-                incProgress(1/n)
-                Sys.sleep(0.1)
-            }
-        })
-        cat("Finished doing quality control")
 
         return("")
     })
@@ -108,16 +116,11 @@ server <- function(input, output, session) {
         op.choice <- input$custOperation
         constant.choice <- input$custThreshold
 
-        error <- draw.step2.interface(plot.title, wsdi_ud, csdi_ud, rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice)
+        progress <- shiny::Progress$new()
+        on.exit(progress$close())
+        progress$set(message="Calculating indices", value=0)
 
-        withProgress(message = "Processing data", value = 0, {
-            n <- 20
-            for (i in 1:n) {
-                # Increment the progress bar
-                incProgress(1/n)
-                Sys.sleep(0.1)
-            }
-        })
+        error <- draw.step2.interface(progress, plot.title, wsdi_ud, csdi_ud, rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice)
 
         return("")
     })
