@@ -8,6 +8,7 @@ To run the app from your computer:
 
 ```{bash}
 $ git clone https://github.com/nicjhan/climpact2-app.git
+$ cd climpact2-app
 $ R
 ```
 
@@ -15,8 +16,8 @@ $ R
 > install.packages('shiny')
 > install.packages('shinythemes')
 > install.packages('markdown')
-> library(shiny)
-> runApp('climpact2-app')
+> install.packages('servr')
+> source('startapp.R')
 ```
 
 (it will automatically start up a web browser)
