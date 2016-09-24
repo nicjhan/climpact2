@@ -1,4 +1,9 @@
 
+library(shiny)
+library(servr)
+
+servr::httw(port=4199, browser=FALSE, daemon=TRUE)
+
 server <- function(input, output, session) {
 
     # Validate the stationName and dataFile fields.
