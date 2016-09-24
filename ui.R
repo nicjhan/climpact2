@@ -28,7 +28,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 numericInput("stationLat", "Latitude:", 0, min = -90, max = 90),
                 numericInput("stationLon", "Longitude:", 0, min = 0, max = 360),
                 numericInput("startYear", "Start year:", 1970),
-                numericInput("endYear", "End year:", 1970)
+                numericInput("endYear", "End year:", 2010)
                 #dateRangeInput('dateRange', label = 'Base period:', startview="decade",
                 #              start = as.Date("2010-01-01", "%Y-%m-%d"), end = as.Date("2014-01-01", "%Y-%m-%d"))
             )),

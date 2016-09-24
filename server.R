@@ -1,7 +1,6 @@
 
 library(shiny)
 library(servr)
-
 servr::httw(port=4199, browser=FALSE, daemon=TRUE)
 
 server <- function(input, output, session) {
@@ -82,7 +81,8 @@ server <- function(input, output, session) {
         #base.year.start <- as.numeric(format(base.year.start, "%Y"));
 		#base.year.end <-as.numeric(format(base.year.end, "%Y"));
 
-        outputDir <- 'output'
+        #outputDir <- tempdir()
+        outputDir <- './output'
         dir.create(outputDir)
 
         # input$dataFile will be NULL initially. After the user selects

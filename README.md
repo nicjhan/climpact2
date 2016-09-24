@@ -32,7 +32,14 @@ Then:
 
 ```{bash}
 $ sudo su --c "R -e \"install.packages('rmarkdown', repos='http://cran.rstudio.com/')\""
-$
+$ sudo su --c "R -e \"install.packages('shinythemes', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('servr', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('bitops', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('Rcpp', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('caTools', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('PCICt', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('SPEI', repos='http://cran.rstudio.com/')\""
+$ sudo su --c "R -e \"install.packages('climdex.pcic', repos='http://cran.rstudio.com/')\""
 ```
 
 Make sure TCP port 3838 is open/accessible then visit: http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:3838/
