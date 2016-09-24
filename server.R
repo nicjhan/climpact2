@@ -1,9 +1,13 @@
 
 library(shiny)
 library(servr)
+source("climpact2.R")
+package.check()
+source("ancillary/climpact2.etsci-functions.r")
 
 try(servr::httw(host='0.0.0.0', port=4199, browser=FALSE, daemon=TRUE))
 
+# FIXME: can use session to get url.
 if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
     url <- "\"http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:4199/"
 } else {
@@ -58,14 +62,11 @@ server <- function(input, output, session) {
 
     output$indicesLink <- renderText({
         indiceChanges()
-        HTML(paste("View <a target=\"_blank\" href=",url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",url,get.thresh.dir(),"/\">trends</a> OR download all.", sep=""))
+        HTML(paste("View <a target=\"_blank\" href=",url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",url,get.thresh.dir(),"/\">thresholds</a> OR download all.", sep=""))
     })
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
-        source("climpact2.R")
         # Set up globals
-        package.check()
-        source("ancillary/climpact2.etsci-functions.r")
         global.vars()
 
         stationNameMissing()
@@ -88,8 +89,7 @@ server <- function(input, output, session) {
         #base.year.start <- as.numeric(format(base.year.start, "%Y"));
 		#base.year.end <-as.numeric(format(base.year.end, "%Y"));
 
-        #outputDir <- tempdir()
-        outputDir <- './output'
+        outputDir <- tempfile(tmpdir='./output')
         dir.create(outputDir)
 
         # input$dataFile will be NULL initially. After the user selects
