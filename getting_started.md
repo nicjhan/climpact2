@@ -24,7 +24,8 @@ $ R
 > install.packages('shinythemes')
 > install.packages('markdown')
 > install.packages('servr')
-> source('startapp.R')
+> library(shiny)
+> runApp('./')
 ```
 The app will automatically start in your default browser.
 
@@ -32,4 +33,3 @@ Or, connect to the ClimPACT2 server at http://ec2-52-65-87-111.ap-southeast-2.co
 
 ### Further Documentation and License
 Please refer to the official ClimPACT2 GitHub page at https://github.com/ARCCSS-extremes/climpact2
-
