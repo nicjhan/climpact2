@@ -1,7 +1,14 @@
 
 library(shiny)
 library(servr)
-servr::httw(port=4199, browser=FALSE, daemon=TRUE)
+
+try(servr::httw(host='0.0.0.0', port=4199, browser=FALSE, daemon=TRUE))
+
+if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
+    url <- "\"http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:4199/"
+} else {
+    url <- "\"http://localhost:4199/"
+}
 
 server <- function(input, output, session) {
 
@@ -46,12 +53,12 @@ server <- function(input, output, session) {
     output$qcLink <- renderText({
         datasetChanges()
         qcDir <- get.qc.dir()
-        HTML(paste("Please view the <a target=\"_blank\" href=\"http://localhost:4199/",qcDir,"/\">QC output</a> and carefull evaluate before continuing. Refer to <a target=\"_blank\" href=\"http://localhost:4199/user_guide/html/AppendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=\"http://localhost:4199/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
+        HTML(paste("Please view the <a target=\"_blank\" href=",url,qcDir,"/\">QC output</a> and carefull evaluate before continuing. Refer to <a target=\"_blank\" href=",url,"user_guide/html/appendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=",url, "/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
     })
 
     output$indicesLink <- renderText({
         indiceChanges()
-        HTML(paste("View <a target=\"_blank\" href=\"http://localhost:4199/",get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=\"http://localhost:4199/",get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=\"http://localhost:4199/",get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=\"http://localhost:4199/",get.thresh.dir(),"/\">trends</a> OR download all.", sep=""))
+        HTML(paste("View <a target=\"_blank\" href=",url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",url,get.thresh.dir(),"/\">trends</a> OR download all.", sep=""))
     })
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {

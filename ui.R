@@ -2,6 +2,12 @@
 library(shinythemes)
 library(markdown)
 
+if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
+    url <- "http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:4199/"
+} else {
+    url <- "http://localhost:4199/"
+}
+
 ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
     tabPanel("Getting Started",
 	    fluidPage(
@@ -70,9 +76,9 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
         fluidRow(
             column(12,
                 "See ",
-                a("Section 3.5", target="_blank", href="http://localhost:4199/user_guide/html/GUI.htm"),
+                a("Section 3.5", target="_blank", href=paste(url, "/user_guide/html/GUI.htm", sep="")),
                 " of the ",
-                a("ClimPact2 user guide", target="_blank", href="http://localhost:4199/user_guide/ClimPACT2_user_guide.htm"),
+                a("ClimPact2 user guide", target="_blank", href=paste(url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
                 " for help with the following fields.",
                 br(),
                 br()
@@ -145,5 +151,4 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
 )
 
 shinyUI(ui)
-
 
