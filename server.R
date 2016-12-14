@@ -57,7 +57,7 @@ server <- function(input, output, session) {
     output$qcLink <- renderText({
         datasetChanges()
         qcDir <- get.qc.dir()
-        HTML(paste("Please view the <a target=\"_blank\" href=",url,qcDir,"/\">QC output</a> and carefull evaluate before continuing. Refer to <a target=\"_blank\" href=",url,"user_guide/html/appendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=",url, "/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
+        HTML(paste("Please view the <a target=\"_blank\" href=",url,qcDir,"/\">QC output</a> and carefully evaluate before continuing. Refer to <a target=\"_blank\" href=",url,"user_guide/html/appendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=",url, "/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
     })
 
     output$indicesLink <- renderText({
@@ -68,6 +68,20 @@ server <- function(input, output, session) {
     output$calculateIndicesTabLink <- renderText({
         datasetChanges()
         HTML("Now proceed to <a target='_blank' href='#calculateIndices'>Calculate Climate Indices</a>")
+    })
+
+    stationLat <- reactive({
+        validate(
+            need(input$stationLat >= -90 && input$stationLat <= 90, 'Latitude must be between -90 and 90.')
+        )
+        input$stationLat
+    })
+
+    stationLon <- reactive({
+        validate(
+            need(input$stationLon >= -180 && input$stationLon <= 180, 'Longitude must be between -180 and 180')
+        )
+        input$stationLon
     })
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
@@ -83,8 +97,8 @@ server <- function(input, output, session) {
             return("Bad data file")
         }
 
-        latitude <- input$stationLat
-        longitude <- input$stationLon
+        latitude <- stationLat()
+        longitude <- stationLon()
         stationName <- input$stationName
 
         base.year.start <- input$startYear

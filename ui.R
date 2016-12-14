@@ -38,9 +38,9 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 wellPanel(
                 textInput("stationName", "Station name:"),
                 numericInput("stationLat", "Latitude:", 0, min = -90, max = 90),
-                numericInput("stationLon", "Longitude:", 0, min = 0, max = 360),
-                numericInput("startYear", "Start year:", 1970),
-                numericInput("endYear", "End year:", 2010)
+                numericInput("stationLon", "Longitude:", 0, min = -180, max = 180),
+                numericInput("startYear", "Base Period Start year:", 1970, min = 0),
+                numericInput("endYear", "Base Period End year:", 2010, min = 0)
                 #dateRangeInput('dateRange', label = 'Base period:', startview="decade",
                 #              start = as.Date("2010-01-01", "%Y-%m-%d"), end = as.Date("2014-01-01", "%Y-%m-%d"))
             )),
@@ -68,7 +68,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     )
                 ),
                 column(4,
-                    h4('5. Proceed to Calculate Climate Indices'),
+                    h4('5. Calculate Climate Indices'),
                     conditionalPanel(
                         condition = "output.qualityControlError == ''",
                         wellPanel(
@@ -109,8 +109,8 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
         ),
         fluidRow(
             column(4,
-                numericInput("wsdin", "WSDIn Days:", 2, min = 0),
-                numericInput("csdin", "CSDIn Days:", 2, min = 0),
+                numericInput("wsdin", "WSDIn Days:", 1, min = 1, max = 10),
+                numericInput("csdin", "CSDIn Days:", 1, min = 0),
                 numericInput("rxnday", "RxnDay Days:", 3, min = 0),
                 numericInput("txtn", "n for nTXnTN and nTXbnTNb:", 2, min = 0)
             ),
@@ -137,7 +137,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
         )),
         fluidRow(
             column(6,
-                h4('2. Calculate Indices'),
+                h4('7. Calculate Indices'),
                 conditionalPanel(
                     condition = "output.qualityControlError == ''",
                     wellPanel(
@@ -154,7 +154,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                 )
             ),
             column(6,
-                h4('3. View Indices'),
+                h4('8. View Indices'),
                 conditionalPanel(
                     condition = "output.indiceCalculationError == ''",
                     wellPanel(
