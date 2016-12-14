@@ -66,12 +66,29 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                             tags$b("Process Data and Quality Control")
                         )
                     )
+                ),
+                column(4,
+                    h4('5. Proceed to Calculate Climate Indices'),
+                    conditionalPanel(
+                        condition = "output.qualityControlError == ''",
+                        wellPanel(
+                            uiOutput("calculateIndicesTabLink")
+                        )
+                        # http://stackoverflow.com/questions/33021757/externally-link-to-specific-tabpanel-in-shiny-app
+                    ),
+                    conditionalPanel(
+                        condition = "output.qualityControlError != ''",
+                        wellPanel(
+                            "Please complete step 3: ",
+                            tags$b("Process Data and Quality Control")
+                        )
+                    )
                 )
             )
         )
     )),
     tabPanel("Calculate Climate Indices", fluidPage(
-        h4('1. Input User Parameters'),
+        h4('6. Input User Parameters'),
         wellPanel(
         fluidRow(
             column(6,

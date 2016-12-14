@@ -65,7 +65,13 @@ server <- function(input, output, session) {
         HTML(paste("View <a target=\"_blank\" href=",url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",url,get.thresh.dir(),"/\">thresholds</a> OR download all.", sep=""))
     })
 
+    output$calculateIndicesTabLink <- renderText({
+        datasetChanges()
+        HTML("Now proceed to <a target='_blank' href='#calculateIndices'>Calculate Climate Indices</a>")
+    })
+
     output$qualityControlError <- eventReactive(input$doQualityControl, {
+
         # Set up globals
         global.vars()
 
@@ -74,7 +80,7 @@ server <- function(input, output, session) {
 
         dataFile <- input$dataFile
         if (is.null(dataFile)) {
-          return(NULL)
+            return("Bad data file")
         }
 
         latitude <- input$stationLat
