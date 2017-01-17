@@ -16,25 +16,13 @@ if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
 
 server <- function(input, output, session) {
 
-    # Validate the stationName and dataFile fields.
-    stationNameMissing <- reactive({
-        validate(
-            need(input$stationName != "", message="Please enter a station name")
-        )
-        ""
-    })
     output$qualityControlError <- eventReactive(input$doQualityControl, {
-        stationNameMissing()
-    })
-    dataFileMissing <- reactive({
-        validate(
-            need(!is.null(input$dataFile), message="Please load a dataset")
-        )
-        ""
+        stationName()
     })
     output$qualityControlError <- eventReactive(input$calculateIndices, {
-        dataFileMissing()
+        dataFile()
     })
+
     # Validate the plot title.
     plotTitleMissing <- reactive({
         validate(
@@ -81,6 +69,20 @@ server <- function(input, output, session) {
         input$stationLon
     })
 
+    stationName <- reactive({
+        validate(
+            need(input$stationName != "", message="Please enter a station name")
+        )
+        input$stationName
+    })
+
+    dataFile <- reactive({
+        validate(
+            need(!is.null(input$dataFile), message="Please load a dataset")
+        )
+        input$dataFile
+    })
+
 	observeEvent(input$calculateIndicesTabLink, {
     	updateTabsetPanel(session, "mainNavbar",
                            selected="calculateIndices")
@@ -88,20 +90,17 @@ server <- function(input, output, session) {
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
 
-        # Set up globals
+        # Set up globals in Climpact2
         global.vars()
 
-        stationNameMissing()
-        dataFileMissing()
-
-        dataFile <- input$dataFile
-        if (is.null(dataFile)) {
+        file <- dataFile()
+        if (is.null(file)) {
             return("Bad data file")
         }
 
         latitude <- stationLat()
         longitude <- stationLon()
-        stationName <- input$stationName
+        station <- stationName()
 
         base.year.start <- input$startYear
         base.year.end <- input$endYear
@@ -119,8 +118,8 @@ server <- function(input, output, session) {
         on.exit(progress$close())
         progress$set(message="Processing data", value=0)
 
-        error <- load.data.qc(progress, dataFile$datapath, outputDir, latitude,
-                              longitude, stationName,
+        error <- load.data.qc(progress, file$datapath, outputDir, latitude,
+                              longitude, station,
                               base.year.start, base.year.end)
         if (error !=  "") {
             return(error)

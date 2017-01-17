@@ -24,13 +24,16 @@ ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readabl
                 "The dataset ",
                 strong("must"),
                 " use the format described in ",
-                a("Appendix B", target="_blank", href=paste(url, "/user_guide/html/appendixB.htm", sep="")),
+                a("Appendix B", target="_blank",
+                  href=paste(url, "/user_guide/html/appendixB.htm", sep="")),
                 " of the ",
-                a("ClimPact2 user guide", target="_blank", href=paste(url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
+                a("ClimPact2 user guide", target="_blank",
+                  href=paste(url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
                 tags$hr(),
                 p('If you want a sample dataset,',
                   'first save this sample',
-                  a("sydney_observatory_hill_1936-2015.txt", target="_blank", href=paste(url, "sample_data/sydney_observatory_hill_1936-2015.txt", sep="")),
+                  a("sydney_observatory_hill_1936-2015.txt", target="_blank",
+                    href=paste(url, "sample_data/sydney_observatory_hill_1936-2015.txt", sep="")),
                   ' and then load.')
             )),
             column(4,
@@ -41,8 +44,6 @@ ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readabl
                 numericInput("stationLon", "Longitude:", 0, min = -180, max = 180),
                 numericInput("startYear", "Base Period Start year:", 1970, min = 0),
                 numericInput("endYear", "Base Period End year:", 2010, min = 0)
-                #dateRangeInput('dateRange', label = 'Base period:', startview="decade",
-                #              start = as.Date("2010-01-01", "%Y-%m-%d"), end = as.Date("2014-01-01", "%Y-%m-%d"))
             )),
             fluidRow(
                 column(4,
@@ -73,7 +74,7 @@ ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readabl
                         condition = "output.qualityControlError == ''",
                         wellPanel(
                             actionLink("calculateIndicesTabLink",
-                                       "Go to the Calculate Climate Indices tab.")
+                                       "Go to the Calculate Climate Indices tab")
                         )
                     ),
                     conditionalPanel(
@@ -99,9 +100,11 @@ ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readabl
         fluidRow(
             column(12,
                 "See ",
-                a("Section 3.5", target="_blank", href=paste(url, "/user_guide/html/GUI.htm", sep="")),
+                a("Section 3.5", target="_blank",
+                  href=paste(url, "/user_guide/html/GUI.htm", sep="")),
                 " of the ",
-                a("ClimPact2 user guide", target="_blank", href=paste(url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
+                a("ClimPact2 user guide", target="_blank",
+                  href=paste(url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
                 " for help with the following fields.",
                 br(),
                 br()
