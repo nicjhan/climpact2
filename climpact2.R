@@ -520,6 +520,10 @@ get.thresh.dir <- function()
     return(outthresdir)
 }
 
+get.output.zipfile <- function()
+{
+    return(zipfile)
+}
 
 # Given a user's RClimdex text file path, read in, convert -99.9 to NA and
 # return contents as array of 6 columns.
@@ -552,6 +556,7 @@ create.dir <- function() {
     outtrddir<-paste(outdir,"trend",sep="/")
     outqcdir<-paste(outdir,"qc",sep="/")    # save results from extraqc
     outthresdir<-paste(outdir,"thres",sep="/")   # to save *_thres.csv files 
+    zipfile<-paste(outdir,".zip",sep="")
 
 	# Create subdirectories if non-existent
 	if(!file.exists(paste(outinddir,ofilename,sep="/"))) { dir.create(outinddir,showWarnings=FALSE) ; dir.create(paste(outinddir,ofilename,sep="/")) }
@@ -576,6 +581,7 @@ create.dir <- function() {
 	assign("outtrddir",outtrddir,envir=.GlobalEnv)
 	assign("outqcdir", outqcdir, envir=.GlobalEnv)
 	assign("outthresdir",outthresdir,envir=.GlobalEnv)
+	assign("zipfile",zipfile,envir=.GlobalEnv)
 }
 
 
@@ -864,7 +870,14 @@ draw.step2.interface <- function(progress, plot.title, wsdi_ud, csdi_ud, rx_ud, 
     print(var.choice)
 
     index.calc(progress, metadata)
-  
+
+    # Create a zip file containing all of the results.
+    curwd <- getwd()
+    setwd(paste(outdirtmp, '..', sep="/"))
+    files2zip <- dir(basename(outdirtmp), full.names = TRUE)
+    zip(zipfile = basename(outdirtmp), files = files2zip)
+    setwd(curwd)
+
 } # end of draw.step2.interface
 
 # This function loops through all indices and calls the appropriate functions to calculate them.
