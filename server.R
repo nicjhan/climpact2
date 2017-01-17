@@ -88,6 +88,12 @@ server <- function(input, output, session) {
                            selected="calculateIndices")
   	})
 
+    observeEvent(input$dataFile, {
+        val <- strsplit(input$dataFile$name, "[_\\.]")[[1]][1]
+        updateTextInput(session, "stationName", value=val)
+        updateTextInput(session, "plotTitle", value=val)
+    })
+
     output$qualityControlError <- eventReactive(input$doQualityControl, {
 
         # Set up globals in Climpact2
