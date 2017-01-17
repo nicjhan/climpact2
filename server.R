@@ -9,9 +9,9 @@ try(servr::httw(host='0.0.0.0', port=4199, browser=FALSE, daemon=TRUE))
 
 # FIXME: can use session to get url.
 if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
-    url <- "\"http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:4199/"
+    file_url <- "\"http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:4199/"
 } else {
-    url <- "\"http://localhost:4199/"
+    file_url <- "\"http://localhost:4199/"
 }
 
 server <- function(input, output, session) {
@@ -57,32 +57,34 @@ server <- function(input, output, session) {
     output$qcLink <- renderText({
         datasetChanges()
         qcDir <- get.qc.dir()
-        HTML(paste("Please view the <a target=\"_blank\" href=",url,qcDir,"/\">QC output</a> and carefully evaluate before continuing. Refer to <a target=\"_blank\" href=",url,"user_guide/html/appendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=",url, "/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
+        HTML(paste("Please view the <a target=\"_blank\" href=",file_url,qcDir,"/\">QC output</a> and carefully evaluate before continuing. Refer to <a target=\"_blank\" href=",file_url,"user_guide/html/appendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=",file_url, "/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
     })
 
     output$indicesLink <- renderText({
         indiceChanges()
-        HTML(paste("View <a target=\"_blank\" href=",url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",url,get.thresh.dir(),"/\">thresholds</a> OR download all.", sep=""))
-    })
-
-    output$calculateIndicesTabLink <- renderText({
-        datasetChanges()
-        HTML("Now proceed to <a target='_blank' href='#calculateIndices'>Calculate Climate Indices</a>")
+        HTML(paste("View <a target=\"_blank\" href=",file_url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",file_url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",file_url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",file_url,get.thresh.dir(),"/\">thresholds</a> OR download all.", sep=""))
     })
 
     stationLat <- reactive({
         validate(
-            need(input$stationLat >= -90 && input$stationLat <= 90, 'Latitude must be between -90 and 90.')
+            need(input$stationLat >= -90 && input$stationLat <= 90,
+                 'Latitude must be between -90 and 90.')
         )
         input$stationLat
     })
 
     stationLon <- reactive({
         validate(
-            need(input$stationLon >= -180 && input$stationLon <= 180, 'Longitude must be between -180 and 180')
+            need(input$stationLon >= -180 && input$stationLon <= 180,
+                 'Longitude must be between -180 and 180')
         )
         input$stationLon
     })
+
+	observeEvent(input$calculateIndicesTabLink, {
+    	updateTabsetPanel(session, "mainNavbar",
+                           selected="calculateIndices")
+  	})
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
 
@@ -104,11 +106,6 @@ server <- function(input, output, session) {
         base.year.start <- input$startYear
         base.year.end <- input$endYear
 
-        #base.year.start <- input$dateRange[1]
-        #base.year.end <- input$dateRange[2]
-        #base.year.start <- as.numeric(format(base.year.start, "%Y"));
-		#base.year.end <-as.numeric(format(base.year.end, "%Y"));
-
         outputDir <- tempfile(tmpdir='./output')
         dir.create(outputDir)
 
@@ -122,7 +119,9 @@ server <- function(input, output, session) {
         on.exit(progress$close())
         progress$set(message="Processing data", value=0)
 
-        error <- load.data.qc(progress, dataFile$datapath, outputDir, latitude, longitude, stationName, base.year.start,base.year.end)
+        error <- load.data.qc(progress, dataFile$datapath, outputDir, latitude,
+                              longitude, stationName,
+                              base.year.start, base.year.end)
         if (error !=  "") {
             return(error)
         }
@@ -152,8 +151,10 @@ server <- function(input, output, session) {
         on.exit(progress$close())
         progress$set(message="Calculating indices", value=0)
 
-        error <- draw.step2.interface(progress, plot.title, wsdi_ud, csdi_ud, rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice)
-
+        error <- draw.step2.interface(progress, plot.title, wsdi_ud, csdi_ud,
+                                      rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD,
+                                      Tb_GDD, custom_SPEI, var.choice, op.choice,
+                                      constant.choice)
         return("")
     })
 

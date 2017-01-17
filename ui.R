@@ -8,13 +8,13 @@ if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
     url <- "http://localhost:4199/"
 }
 
-ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
-    tabPanel("Getting Started",
+ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readable"),
+    tabPanel(title="Getting Started",
 	    fluidPage(
 		    includeMarkdown("getting_started.md")
 	    )
     ),
-    tabPanel("Load and Check Data", fluidPage(
+    tabPanel(title="Load and Check Data", fluidPage(
         fluidRow(
        	    column(4,
                 h4('1. Load Dataset'),
@@ -72,9 +72,9 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
                     conditionalPanel(
                         condition = "output.qualityControlError == ''",
                         wellPanel(
-                            uiOutput("calculateIndicesTabLink")
+                            actionLink("calculateIndicesTabLink",
+                                       "Go to the Calculate Climate Indices tab.")
                         )
-                        # http://stackoverflow.com/questions/33021757/externally-link-to-specific-tabpanel-in-shiny-app
                     ),
                     conditionalPanel(
                         condition = "output.qualityControlError != ''",
@@ -87,7 +87,7 @@ ui <- navbarPage("Climpact2", theme = shinytheme("readable"),
             )
         )
     )),
-    tabPanel("Calculate Climate Indices", fluidPage(
+    tabPanel(title="Calculate Climate Indices", value="calculateIndices", fluidPage(
         h4('6. Input User Parameters'),
         wellPanel(
         fluidRow(
