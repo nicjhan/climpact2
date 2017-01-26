@@ -167,9 +167,48 @@ ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readabl
                 conditionalPanel(
                     condition = "output.indiceCalculationError != ''",
                     wellPanel(
-                        "Please complete step 2: ",
+                        "Please complete step 7: ",
                         tags$b("Calculate Indices.")
                     )
+                )
+            )
+        )
+    )),
+    tabPanel(title="Sector Data Correlation", fluidPage(
+        fluidRow(
+       	    column(6,
+                h4('1. Load Sector Data'),
+                wellPanel(
+	            fileInput('sectorDataFile', NULL,
+                    accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
+                "The dataset ",
+                strong("must"),
+                " use the format described in ",
+                a("Appendix B", target="_blank",
+                  href=paste(url, "/user_guide/html/appendixB.htm", sep="")),
+                " of the ",
+                a("ClimPact2 user guide", target="_blank",
+                  href=paste(url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
+                tags$hr(),
+                p('If you want a sample dataset,',
+                  'first save this sample',
+                  a("wheat_yield_nsw_1922-1999.csv", target="_blank",
+                    href=paste(url, "sample_data/wheat_yield_nsw_1922-1999.csv", sep="")),
+                  ' and then load.')
+            )),
+            column(6,
+                h4('2. Sector Data Infomation'),
+                wellPanel(
+                textInput("sectorPlotName", "Plot name:"),
+                checkboxInput("detrendCheck", "Detrend data", value = TRUE, width = NULL)
+            ))
+        ),
+        fluidRow(
+           column(12,
+                h4('3. Make correlation plots'),
+                wellPanel(
+                actionButton("calculateSectorCorrelation", "Calculate Correlation"),
+                textOutput("sectorCorrelationError")
                 )
             )
         )

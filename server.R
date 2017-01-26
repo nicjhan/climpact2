@@ -83,6 +83,13 @@ server <- function(input, output, session) {
         input$dataFile
     })
 
+    sectorDataFile <- reactive({
+        validate(
+            need(!is.null(input$sectorDataFile), message="Please load a dataset")
+        )
+        input$sectorDataFile
+    })
+
 	observeEvent(input$calculateIndicesTabLink, {
     	updateTabsetPanel(session, "mainNavbar",
                            selected="calculateIndices")
