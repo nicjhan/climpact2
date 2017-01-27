@@ -1,9 +1,13 @@
 
 library(shiny)
 library(servr)
+library(dplyr)
+library(corrplot)
+library(ggplot2)
 source("climpact2.R")
 package.check()
 source("ancillary/climpact2.etsci-functions.r")
+source("industry_correlation.R")
 
 try(servr::httw(host='0.0.0.0', port=4199, browser=FALSE, daemon=TRUE))
 
@@ -32,6 +36,17 @@ server <- function(input, output, session) {
     })
     output$indiceCalculationError <- eventReactive(input$calculateIndices, {
         plotTitleMissing()
+    })
+    
+    # Validate sector plot title.
+    sectorPlotTitleMissing <- reactive({
+      validate(
+        need(input$sectorPlotName != "", message="Please enter a plotting title")
+      )
+      ""
+    })
+    output$sectorCorrelationError <- eventReactive(input$calculateSectorCorrelation, {
+      sectorPlotTitleMissing()
     })
 
     datasetChanges <- reactive({
@@ -137,7 +152,7 @@ server <- function(input, output, session) {
         if (error !=  "") {
             return(error)
         }
-
+        
         return("")
     })
 
@@ -169,9 +184,49 @@ server <- function(input, output, session) {
                                       constant.choice)
         return("")
     })
+    
+    ## Correlation functionality
+    
+    # React to upload
+    observeEvent(input$sectorDataFile, {
+      val <- strsplit(input$sectorDataFile$name, "[_\\.]")[[1]][1]
+      updateTextInput(session, "sectorPlotName", value=val)
+    })
+    
+    # Handle calculation of correlation between climate/industry data
+    output$sectorCorrelationError <- eventReactive(input$calculateSectorCorrelation, {
+      
+      if(!exists("corrdir")){
+        return("Correlation directory does not exist, please use Process button on Load & Check Data")
+      }
+      
+      climate.data <- dataFile()
+      if (is.null(climate.data)) {
+        return("Bad data file")
+      }
+      
+      sector.data <- sectorDataFile()
+      if (is.null(sector.data)) {
+        return("Bad sector data file")
+      }
+      
+      plotTitleMissing()
+
+      plot.title <- input$sectorPlotName
+      detrendCheck <- input$detrendCheck
+
+      progress <- shiny::Progress$new()
+      on.exit(progress$close())
+      progress$set(message="Calculating correlation", value=0)
+
+      error <- draw.correlation(progress, climate.data$datapath, sector.data$datapath, plot.title, detrendCheck)
+
+      ifelse(error=="",return(""),return(error))
+    })
 
     outputOptions(output, "indiceCalculationError", suspendWhenHidden=FALSE)
     outputOptions(output, "qualityControlError", suspendWhenHidden=FALSE)
+    outputOptions(output, "sectorCorrelationError", suspendWhenHidden=FALSE)
 }
 
 shinyServer(server)

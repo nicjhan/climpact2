@@ -8,7 +8,7 @@ if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
     url <- "http://localhost:4199/"
 }
 
-ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("readable"),
+ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("cerulean"),
     tabPanel(title="Getting Started",
 	    fluidPage(
 		    includeMarkdown("getting_started.md")
