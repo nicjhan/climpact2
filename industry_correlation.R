@@ -1,7 +1,7 @@
 ## Correlation between climate and industry data
 
 # define in environment
-assign("wheat_plot_y_label", "Wheat Yield", envir=.GlobalEnv)
+assign("wheat_plot_y_label", "Wheat Yield (t/ha)", envir=.GlobalEnv)
 
 # draw the correlation between temperature and industry data
 draw.correlation <- function(progress, user.file, sector.file, plot.title, detrendCheck){
