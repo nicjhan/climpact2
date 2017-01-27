@@ -557,6 +557,7 @@ create.dir <- function() {
     outqcdir<-paste(outdir,"qc",sep="/")    # save results from extraqc
     outthresdir<-paste(outdir,"thres",sep="/")   # to save *_thres.csv files 
     zipfile<-paste(outdir,".zip",sep="")
+    corrdir<-paste(outdir,"corr",sep="/")   # save correlation files
 
 	# Create subdirectories if non-existent
 	if(!file.exists(paste(outinddir,ofilename,sep="/"))) { dir.create(outinddir,showWarnings=FALSE) ; dir.create(paste(outinddir,ofilename,sep="/")) }
@@ -565,6 +566,7 @@ create.dir <- function() {
 	if(!file.exists(paste(outtrddir,ofilename,sep="/"))) { dir.create(outtrddir,showWarnings=FALSE) ; dir.create(paste(outtrddir,ofilename,sep="/")) }
 	if(!file.exists(paste(outqcdir,ofilename,sep="/")))  { dir.create(outqcdir,showWarnings=FALSE) ; dir.create(paste(outqcdir,ofilename,sep="/")) }
 	if(!file.exists(paste(outthresdir,ofilename,sep="/"))) { dir.create(outthresdir,showWarnings=FALSE) ; dir.create(paste(outthresdir,ofilename,sep="/")) }
+  if(!file.exists(paste(corrdir,ofilename,sep="/"))) { dir.create(corrdir,showWarnings=FALSE) ; dir.create(paste(corrdir,ofilename,sep="/")) }
 	
 	# modify subdirectory names
 	outinddir <- paste(outinddir,ofilename,sep="/")
@@ -573,6 +575,7 @@ create.dir <- function() {
 	outtrddir <- paste(outtrddir,ofilename,sep="/")
 	outqcdir <- paste(outqcdir,ofilename,sep="/")
 	outthresdir <- paste(outthresdir,ofilename,sep="/")
+	corrdir <- paste(corrdir,ofilename,sep="/")
 	
 	# save the directory as global variable for use somewhere else.
 	assign("outinddir",outinddir,envir=.GlobalEnv)
@@ -582,6 +585,7 @@ create.dir <- function() {
 	assign("outqcdir", outqcdir, envir=.GlobalEnv)
 	assign("outthresdir",outthresdir,envir=.GlobalEnv)
 	assign("zipfile",zipfile,envir=.GlobalEnv)
+	assign("corrdir",corrdir,envir=.GlobalEnv)
 }
 
 
