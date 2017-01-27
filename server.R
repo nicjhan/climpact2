@@ -150,7 +150,7 @@ server <- function(input, output, session) {
                               longitude, station,
                               base.year.start, base.year.end)
         if (error !=  "") {
-          return(error)
+            return(error)
         }
         
         return("")
@@ -182,7 +182,6 @@ server <- function(input, output, session) {
                                       rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD,
                                       Tb_GDD, custom_SPEI, var.choice, op.choice,
                                       constant.choice)
-        
         return("")
     })
     
