@@ -32,13 +32,20 @@ create.correlation.plot <- function(progress, user.file, sector.file, plot.title
     return("Error: not able to make a correlation, since there is not data in common!")
   }
   
+  # Get sector column name..assume it is the 2nd column!
+  sectorColumnName <- colnames(sector.data)[2]
+  
+  # add detrend column
+  sector.data[,getDetrendedColumnName(sectorColumnName)] <- calculateDeTrendValues(sector.data, 1, 2)
+  
   # selection
   sector.data <- sector.data %>% filter(Year %in% common_years)
   temp_per_year <- temp_per_year %>% filter(year %in% common_years)
-  temp_per_year_sector <- cbind(temp_per_year, wheat = sector.data$Wheat.yield..t.ha., wheatD = sector.data$Detrended.Wheat.yield..t.ha.)
+  temp_per_year_sector <- cbind(temp_per_year, sector.data[,2], sector.data[,3])
+  colnames(temp_per_year_sector) <- c("year", "avg_tmax", "avg_tmin", "avg_t", sectorColumnName, getDetrendedColumnName(sectorColumnName))
   
   # depending on detrend, select column
-  wheatCol <- ifelse(detrendCheck, "wheatD", "wheat")
+  sectorCol <- ifelse(detrendCheck, getDetrendedColumnName(sectorColumnName), sectorColumnName)
   progress$inc(0.2)
   
   # Calculate correlation (default = pearson)
@@ -46,18 +53,18 @@ create.correlation.plot <- function(progress, user.file, sector.file, plot.title
   correlationDF <- data.frame(correlation)
   
   # plot tmin vs wheat
-  corr_min_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_tmin", wheatCol]
-  create_save_scatter_plot(paste0("corr_tmin_",wheatCol,".jpg"), temp_per_year_sector, "avg_tmin", wheatCol, plot.title, "Average min temperature", wheat_plot_y_label, as.character(corr_min_tmp_vs_wheat))
+  corr_min_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_tmin", sectorCol]
+  create_save_scatter_plot(paste0("corr_tmin_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label, as.character(corr_min_tmp_vs_wheat))
   progress$inc(0.2)
   
   # plot tmax vs wheat
-  corr_max_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_tmax", wheatCol]
-  create_save_scatter_plot(paste0("corr_tmax_",wheatCol,".jpg"), temp_per_year_sector, "avg_tmax", wheatCol, plot.title, "Average max temperature", wheat_plot_y_label, as.character(corr_max_tmp_vs_wheat))
+  corr_max_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_tmax", sectorCol]
+  create_save_scatter_plot(paste0("corr_tmax_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label, as.character(corr_max_tmp_vs_wheat))
   progress$inc(0.2)
   
   # plot t vs wheat
-  corr_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_t", wheatCol]
-  create_save_scatter_plot(paste0("corr_t_",wheatCol,".jpg"), temp_per_year_sector, "avg_t", wheatCol, plot.title, "Average temperature", wheat_plot_y_label, as.character(corr_tmp_vs_wheat))
+  corr_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_t", sectorCol]
+  create_save_scatter_plot(paste0("corr_t_",sectorCol,".jpg"), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label, as.character(corr_tmp_vs_wheat))
   progress$inc(0.2)
   
   create_save_corrplot("corrplot.jpg", correlation)
@@ -65,6 +72,26 @@ create.correlation.plot <- function(progress, user.file, sector.file, plot.title
   
   # all ok
   return("")
+}
+
+# get detrended column name given the sector column name
+getDetrendedColumnName <- function(sectorColumnName){
+  return(paste("Detrended", sectorColumnName, sep = "."))
+}
+
+# calculate detrend values baded on given dataframe and sector and year column
+calculateDeTrendValues <- function(df, yearColumn, sectorColumn){
+  result <- c()
+  lineair_model <- lm(df[,sectorColumn] ~ df[,yearColumn])
+  regressionCoefficient <- lineair_model[[1]][2]
+  totalRows <- nrow(df)
+  for(i in 1:nrow(df)){
+    currentValue <- df[i,sectorColumn] 
+    averageRow <- ifelse(nrow(df) %% 2 == 1, mean((seq(1:nrow(df)))), mean((seq(1:(nrow(df) +1)))))
+    value <- currentValue - (i-averageRow) * regressionCoefficient
+    result <- append(result, value)
+  }
+  return(result)
 }
 
 # create ggplot and save to jpg

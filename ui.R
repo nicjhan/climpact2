@@ -1,6 +1,7 @@
 
 library(shinythemes)
 library(markdown)
+library(shinyjs)
 
 if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
     url <- "http://ec2-52-65-87-111.ap-southeast-2.compute.amazonaws.com:4199/"
@@ -8,7 +9,9 @@ if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
     url <- "http://localhost:4199/"
 }
 
-ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("cerulean"),
+ui <- tagList(
+    useShinyjs(), 
+    navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("cerulean"),
     tabPanel(title="Getting Started",
 	    fluidPage(
 		    includeMarkdown("getting_started.md")
@@ -213,6 +216,7 @@ ui <- navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("cerulea
             )
         )
     ))
+  )
 )
 
 shinyUI(ui)

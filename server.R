@@ -227,6 +227,9 @@ server <- function(input, output, session) {
     outputOptions(output, "indiceCalculationError", suspendWhenHidden=FALSE)
     outputOptions(output, "qualityControlError", suspendWhenHidden=FALSE)
     outputOptions(output, "sectorCorrelationError", suspendWhenHidden=FALSE)
+    
+    # toggle state of buttons depending on certain criteria
+    observe(toggleState('doQualityControl', !is.null(input$dataFile)))
 }
 
 shinyServer(server)
