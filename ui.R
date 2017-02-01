@@ -11,8 +11,19 @@ if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
 
 ui <- tagList(
     useShinyjs(), 
-    navbarPage(title="Climpact2", id="mainNavbar", theme = shinytheme("cerulean"),
-    tabPanel(title="Getting Started",
+    navbarPage(title="", id="mainNavbar", theme = shinytheme("cerulean"),
+    tabPanel(title="Climpact2",
+      fluidPage(
+        fluidRow(
+          column(6, img(src="coess_unsw.gif"))
+        ),
+        br(), br(),br(),
+        fluidRow(
+          column(6, actionLink("doGetStarted", "Getting started"))
+        )
+      )
+    ),
+    tabPanel(title="Getting Started", value="gettingStarted",
 	    fluidPage(
 		    includeMarkdown("getting_started.md")
 	    )
