@@ -114,10 +114,17 @@ server <- function(input, output, session) {
         input$sectorDataFile
     })
 
-	observeEvent(input$calculateIndicesTabLink, {
+    # switch to calculateIndices tab
+	  observeEvent(input$calculateIndicesTabLink, {
     	updateTabsetPanel(session, "mainNavbar",
                            selected="calculateIndices")
   	})
+	  
+	  # switch to getting started tab
+	  observeEvent(input$doGetStarted, {
+	    updateTabsetPanel(session, "mainNavbar",
+	                      selected="gettingStarted")
+	  })
 
     observeEvent(input$dataFile, {
         val <- strsplit(input$dataFile$name, "[_\\.]")[[1]][1]
