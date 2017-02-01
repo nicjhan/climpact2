@@ -24,6 +24,10 @@ $ R
 > install.packages('shinythemes')
 > install.packages('markdown')
 > install.packages('servr')
+> install.packages('dplyr')
+> install.packages('corrplot')
+> install.packages('ggplot2')
+> install.packages('shinyjs')
 > library(shiny)
 > runApp('./')
 ```

@@ -525,6 +525,11 @@ get.output.zipfile <- function()
     return(zipfile)
 }
 
+get.corr.dir <- function()
+{
+  return(corrdir)
+}
+
 # Given a user's RClimdex text file path, read in, convert -99.9 to NA and
 # return contents as array of 6 columns.
 read.user.file <- function(user.file) {

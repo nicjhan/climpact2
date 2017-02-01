@@ -10,13 +10,14 @@ draw.correlation <- function(progress, user.file, sector.file, plot.title, detre
   curwd <- getwd()
   setwd(corrdir)
   
-  create.correlation.plot(progress, user.file, sector.file, plot.title, detrendCheck)
+  error <- create.correlation.plots(progress, user.file, sector.file, plot.title, detrendCheck)
   
   setwd(curwd)
+  return(error)
 }
 
-# create the plot
-create.correlation.plot <- function(progress, user.file, sector.file, plot.title, detrendCheck){
+# create the correlation plots and save them to disk
+create.correlation.plots <- function(progress, user.file, sector.file, plot.title, detrendCheck){
   
   climate.data <- read.user.file(user.file)
   # assume the sector data is a csv file for now
@@ -94,7 +95,7 @@ calculateDeTrendValues <- function(df, yearColumn, sectorColumn){
   return(result)
 }
 
-# create ggplot and save to jpg
+# create scatter plot with trend line, and save the plot to jpg file
 create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.label, correlation){
   p <- ggplot(df, aes_string(x, y)) + 
     geom_point(shape=1) + 

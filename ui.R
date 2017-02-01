@@ -207,13 +207,29 @@ ui <- tagList(
             ))
         ),
         fluidRow(
-           column(12,
+           column(6,
                 h4('3. Make correlation plots'),
                 wellPanel(
                 actionButton("calculateSectorCorrelation", "Calculate Correlation"),
                 textOutput("sectorCorrelationError")
                 )
-            )
+            ),
+           column(6,
+                  h4('4. View correlation'),
+                  conditionalPanel(
+                    condition = "output.sectorCorrelationError== ''",
+                    wellPanel(
+                      uiOutput("sectorCorrelationLink")
+                    )
+                  ),
+                  conditionalPanel(
+                    condition = "output.sectorCorrelationError != ''",
+                    wellPanel(
+                      "Please complete step 3: ",
+                      tags$b("Calculate Correlation.")
+                    )
+                  )
+           )
         )
     ))
   )
