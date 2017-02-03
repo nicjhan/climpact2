@@ -27,7 +27,8 @@ create.correlation.plots <- function(progress, user.file, sector.file, plot.titl
   progress$inc(0.1)
   
   # match on common data, if not throw error!
-  temp_per_year <-  climate.data %>% group_by(year) %>% summarise(avg_tmax = mean(tmax, na.rm = TRUE), avg_tmin = mean(tmin, na.rm = TRUE), avg_t = mean(c(tmax,tmin), na.rm = TRUE))
+  temp_per_year <-  climate.data %>% group_by(year) %>% summarise(avg_tmax = mean(tmax, na.rm = TRUE), avg_tmin = mean(tmin, na.rm = TRUE), avg_t = mean(c(tmax,tmin), na.rm = TRUE), above30 = sum(tmax > 30))
+  temp_per_year$above30[is.na(temp_per_year$above30)] <- 0 
   common_years <- intersect(temp_per_year$year, sector.data$Year)
   if (length(common_years) == 0){
     return("Error: not able to make a correlation, since there is not data in common!")
@@ -43,29 +44,29 @@ create.correlation.plots <- function(progress, user.file, sector.file, plot.titl
   sector.data <- sector.data %>% filter(Year %in% common_years)
   temp_per_year <- temp_per_year %>% filter(year %in% common_years)
   temp_per_year_sector <- cbind(temp_per_year, sector.data[,2], sector.data[,3])
-  colnames(temp_per_year_sector) <- c("year", "avg_tmax", "avg_tmin", "avg_t", sectorColumnName, getDetrendedColumnName(sectorColumnName))
+  colnames(temp_per_year_sector) <- c("year", "avg_tmax", "avg_tmin", "avg_t", "above30", sectorColumnName, getDetrendedColumnName(sectorColumnName))
   
   # depending on detrend, select column
   sectorCol <- ifelse(detrendCheck, getDetrendedColumnName(sectorColumnName), sectorColumnName)
-  progress$inc(0.2)
   
   # Calculate correlation (default = pearson)
   correlation <- cor(temp_per_year_sector[,-1]) # skip year
   correlationDF <- data.frame(correlation)
   
   # plot tmin vs wheat
-  corr_min_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_tmin", sectorCol]
-  create_save_scatter_plot(paste0("corr_tmin_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label, as.character(corr_min_tmp_vs_wheat))
+  create_save_scatter_plot(paste0("corr_tmin_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot tmax vs wheat
-  corr_max_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_tmax", sectorCol]
-  create_save_scatter_plot(paste0("corr_tmax_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label, as.character(corr_max_tmp_vs_wheat))
+  create_save_scatter_plot(paste0("corr_tmax_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot t vs wheat
-  corr_tmp_vs_wheat <- correlationDF[rownames(correlationDF) %in% "avg_t", sectorCol]
-  create_save_scatter_plot(paste0("corr_t_",sectorCol,".jpg"), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label, as.character(corr_tmp_vs_wheat))
+  create_save_scatter_plot(paste0("corr_t_",sectorCol,".jpg"), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label)
+  progress$inc(0.2)
+  
+  # plot above30 vs wheat
+  create_save_scatter_plot(paste0("corr_above30_",sectorCol,".jpg"), temp_per_year_sector, "above30", sectorCol, plot.title, "Days above 30°C", wheat_plot_y_label)
   progress$inc(0.2)
   
   create_save_corrplot("corrplot.jpg", correlation)
@@ -96,11 +97,19 @@ calculateDeTrendValues <- function(df, yearColumn, sectorColumn){
 }
 
 # create scatter plot with trend line, and save the plot to jpg file
-create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.label, correlation){
+create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.label){
+  annotateX <- min(df[,x]) + (max(df[,x]) - min(df[,x])) / 4
+  annotateY <- max(df[,y])
+  lm.sector <- lm(data = df, paste(y, "~", x, sep = ""))
+  rsquared <- round(summary(lm.sector)$r.squared, 2)
+  coefficients <- round(summary(lm.sector)$coefficients, 2)
+  annotateText <- paste("Y=", coefficients[2], "X +", coefficients[1], "\nR2:", as.character(rsquared))
+  
   p <- ggplot(df, aes_string(x, y)) + 
-    geom_point(shape=1) + 
-    geom_smooth(method=lm) +
-    ggtitle(paste(plot.title, "( correlation =", correlation , ")")) + xlab(x.label) + ylab(y.label)
+    geom_point(colour ='red') +                             # points with red color
+    geom_smooth(method=lm, se = FALSE, colour = "black") +  # draw lineair regression line without confidence interval
+    ggtitle(plot.title) + xlab(x.label) + ylab(y.label) +
+    annotate("text", label = annotateText, x = annotateX, y = annotateY)
   ggsave(filename, plot=p, width = 8, height = 6)
 }
 
