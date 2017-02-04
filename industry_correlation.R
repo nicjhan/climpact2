@@ -27,8 +27,7 @@ create.correlation.plots <- function(progress, user.file, sector.file, plot.titl
   progress$inc(0.1)
   
   # match on common data, if not throw error!
-  temp_per_year <-  climate.data %>% group_by(year) %>% summarise(avg_tmax = mean(tmax, na.rm = TRUE), avg_tmin = mean(tmin, na.rm = TRUE), avg_t = mean(c(tmax,tmin), na.rm = TRUE), above30 = sum(tmax > 30))
-  temp_per_year$above30[is.na(temp_per_year$above30)] <- 0 
+  temp_per_year <-  climate.data %>% group_by(year) %>% summarise(avg_tmax = mean(tmax, na.rm = TRUE), avg_tmin = mean(tmin, na.rm = TRUE), avg_t = mean(c(tmax,tmin), na.rm = TRUE), above30 = sum(tmax > 30, na.rm = TRUE))
   common_years <- intersect(temp_per_year$year, sector.data$Year)
   if (length(common_years) == 0){
     return("Error: not able to make a correlation, since there is not data in common!")
@@ -98,7 +97,7 @@ calculateDeTrendValues <- function(df, yearColumn, sectorColumn){
 
 # create scatter plot with trend line, and save the plot to jpg file
 create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.label){
-  annotateX <- min(df[,x]) + (max(df[,x]) - min(df[,x])) / 4
+  annotateX <- min(df[,x]) + (max(df[,x]) - min(df[,x])) / 8
   annotateY <- max(df[,y])
   lm.sector <- lm(data = df, paste(y, "~", x, sep = ""))
   rsquared <- round(summary(lm.sector)$r.squared, 2)

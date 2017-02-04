@@ -212,6 +212,7 @@ server <- function(input, output, session) {
     # Handle calculation of correlation between climate/industry data
     output$sectorCorrelationError <- eventReactive(input$calculateSectorCorrelation, {
       
+      
       if(!exists("corrdir")){
         return("Correlation directory does not exist, please use Process button on Load & Check Data")
       }
@@ -246,6 +247,7 @@ server <- function(input, output, session) {
     
     # toggle state of buttons depending on certain criteria
     observe(toggleState('doQualityControl', !is.null(input$dataFile)))
+    observe(toggleState('calculateSectorCorrelation', !is.null(input$dataFile) & !is.null(input$sectorDataFile)))
 }
 
 shinyServer(server)
