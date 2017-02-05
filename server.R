@@ -235,7 +235,7 @@ server <- function(input, output, session) {
       on.exit(progress$close())
       progress$set(message="Calculating correlation", value=0)
 
-      error <- draw.correlation(progress, climate.data$datapath, sector.data$datapath, plot.title, detrendCheck)
+      error <- draw.correlation(progress, climate.data$datapath, sector.data$datapath, stationName(), plot.title, detrendCheck)
 
       ifelse(error=="",return(""),return(error))
     })
@@ -246,6 +246,8 @@ server <- function(input, output, session) {
     
     # toggle state of buttons depending on certain criteria
     observe(toggleState('doQualityControl', !is.null(input$dataFile)))
+    observe(toggleState('calculateIndices', !is.null(input$dataFile)))
+    observe(toggleState('calculateSectorCorrelation', !is.null(input$dataFile) & !is.null(input$sectorDataFile)))
 }
 
 shinyServer(server)
