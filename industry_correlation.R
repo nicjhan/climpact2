@@ -38,6 +38,7 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
   
   # add detrend column
   sector.data[,getDetrendedColumnName(sectorColumnName)] <- calculateDeTrendValues(sector.data, 1, 2)
+  sector.data.fileparts <- tolower(gsub("\\.{2}.*$", "", colnames(sector.data)))[2:3]
   
   # selection
   sector.data <- sector.data %>% filter(Year %in% common_years)
@@ -47,32 +48,26 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
   
   # depending on detrend, select column
   sectorCol <- ifelse(detrendCheck, getDetrendedColumnName(sectorColumnName), sectorColumnName)
-  
-  # Calculate correlation (default = pearson)
-  correlation <- cor(temp_per_year_sector[,-1]) # skip year
-  correlationDF <- data.frame(correlation)
+  sectorColumnFilePart <- sectorColumnToFileName(sectorCol, sector.data.fileparts)
   
   # plot tmin vs wheat
-  create_save_scatter_plot(paste0("corr_tmin_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_tmin_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot tmax vs wheat
-  create_save_scatter_plot(paste0("corr_tmax_",sectorCol,".jpg"), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_tmax_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot t vs wheat
-  create_save_scatter_plot(paste0("corr_t_",sectorCol,".jpg"), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_t_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot above30 vs wheat
-  create_save_scatter_plot(paste0("corr_above30_",sectorCol,".jpg"), temp_per_year_sector, "above30", sectorCol, plot.title, "Days above 30°C", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_above30_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "above30", sectorCol, plot.title, "Days above 30°C", wheat_plot_y_label)
   progress$inc(0.2)
   
-  # create correlation matrix plot
-  create_save_corrplot("corrplot.jpg", correlation)
-  
   # create barplot of indice value (not normalized) vs sector data
-  indices <- c("wsdi", "wsdi2", "fd", "tnit5", "rx1day", "rx3day", "cdd", "spi12")
+  indices <- c("wsdi", "wsdi1", "fd", "tnlt2", "rx1day", "rx3day", "cdd", "sdii")
   filenames <- file.path(curwd, outinddir, paste0(stationName, "_", indices, "_ANN.csv"))
   indices.count <- length(indices)
   # init dataframe
@@ -94,7 +89,7 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
       sector.common <- sector.data %>% filter(Year %in% common_years)
       indice.data <- indice.data %>% filter(year %in% common_years)
       sector_indices <- cbind(sector.common, indice.data$value, indice.data$value.norm)
-      correlation <- cor(sector_indices[,-1]) # skip year
+      correlation <- round(cor(sector_indices[,-1]),2) # skip year and round correlation value by 2 decimals
       
       # add data
       df[i,"indice"] <- indices[i]
@@ -107,7 +102,7 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
   }
   df <- df[df$indice != "",]
   df$indice <- factor(df$indice, levels = found.indices) 
-  create_bar_plot(paste0("indice_",sectorCol,".jpg"), df, "indice", "cor", "category", plot.title, "", "")
+  create_bar_plot(paste0(ofilename, "_indice_",sectorColumnFilePart,".jpg"), df, "indice", "cor", "category", plot.title, "", "")
   
   progress$inc(0.1)
   # all ok
@@ -117,6 +112,11 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
 # get detrended column name given the sector column name
 getDetrendedColumnName <- function(sectorColumnName){
   return(paste("Detrended", sectorColumnName, sep = "."))
+}
+
+# get part of the filename that is related to the sector column
+sectorColumnToFileName <- function(sectorColumnName, fileparts){
+  ifelse(grepl("Detrended", sectorColumnName), fileparts[2], fileparts[1])
 }
 
 # calculate detrend values baded on given dataframe and sector and year column
@@ -134,6 +134,9 @@ calculateDeTrendValues <- function(df, yearColumn, sectorColumn){
   return(result)
 }
 
+# default font size in plots
+FONT_BASE_SIZE <- 12
+
 # create scatter plot with trend line, and save the plot to jpg file
 create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.label){
   annotateX <- min(df[,x]) + (max(df[,x]) - min(df[,x])) / 8
@@ -141,29 +144,28 @@ create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.
   lm.sector <- lm(data = df, paste(y, "~", x, sep = ""))
   rsquared <- round(summary(lm.sector)$r.squared, 2)
   coefficients <- round(summary(lm.sector)$coefficients, 2)
-  annotateText <- paste("Y=", coefficients[2], "X +", coefficients[1], "\nR2:", as.character(rsquared))
+  annotateText <- paste("Y=", coefficients[2], "X", ifelse(coefficients[1] >= 0, "+", "-"), abs(coefficients[1]), "\nR2:", as.character(rsquared))
   
   p <- ggplot(df, aes_string(x, y)) + 
-    geom_point(colour ='red') +                             # points with red color
-    geom_smooth(method=lm, se = FALSE, colour = "black") +  # draw lineair regression line without confidence interval
+    geom_point(colour ='red') +                                                    # points with red color
+    geom_smooth(method=lm, se = FALSE, colour = "black") +                         # draw lineair regression line without confidence interval
     ggtitle(plot.title) + xlab(x.label) + ylab(y.label) +
-    annotate("text", label = annotateText, x = annotateX, y = annotateY)
+    annotate("text", label = annotateText, x = annotateX, y = annotateY) +
+    theme_grey(base_size = FONT_BASE_SIZE) +                                       # increase font size
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())  # remove the white gridlines
   ggsave(filename, plot=p, width = 8, height = 6)
-}
-
-# Correlation plot
-# See https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html for options
-create_save_corrplot <- function(filename, correlation){
-  jpeg(file=filename, width = 1024, height = 768)
-  corrplot(correlation, method="number")
-  dev.off()
 }
 
 # create bar plot of given dataframe. Variable z is the feature to be used to fill the bar.
 create_bar_plot <- function(filename, df, x, y, z, plot.title, x.label, y.label){
+  text_position <- 0.5 * df[,"cor"]
   p <- ggplot(df, aes_string(x, y, fill=z)) + 
     geom_bar(stat="identity") +
-    scale_fill_manual(values=c("blue","red")) +                            # custom colors                             
-    ggtitle(plot.title) + xlab(x.label) + ylab(y.label)                     # title, labels
+    scale_fill_manual(values=c("#2fa4e7","red")) +                                 # custom colors (first one is the same blue as in the app)                          
+    ggtitle(plot.title) + xlab(x.label) + ylab(y.label) +                          # title, labels
+    geom_text(aes_string(label=y, y=text_position)) +                              # text halfway in bar
+    theme_grey(base_size = FONT_BASE_SIZE) +                                       # increase font size
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())  # remove the white gridlines
+  
   ggsave(filename, plot=p, width = 8, height = 6)
 }
