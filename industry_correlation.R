@@ -51,19 +51,19 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
   sectorColumnFilePart <- sectorColumnToFileName(sectorCol, sector.data.fileparts)
   
   # plot tmin vs wheat
-  create_save_scatter_plot(paste0(ofilename, "_corr_tmin_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_tmin_",sectorColumnFilePart), temp_per_year_sector, "avg_tmin", sectorCol, plot.title, "Average min temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot tmax vs wheat
-  create_save_scatter_plot(paste0(ofilename, "_corr_tmax_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_tmax_",sectorColumnFilePart), temp_per_year_sector, "avg_tmax", sectorCol, plot.title, "Average max temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot t vs wheat
-  create_save_scatter_plot(paste0(ofilename, "_corr_t_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_t_",sectorColumnFilePart), temp_per_year_sector, "avg_t", sectorCol, plot.title, "Average temperature", wheat_plot_y_label)
   progress$inc(0.2)
   
   # plot above30 vs wheat
-  create_save_scatter_plot(paste0(ofilename, "_corr_above30_",sectorColumnFilePart,".jpg"), temp_per_year_sector, "above30", sectorCol, plot.title, "Days above 30°C", wheat_plot_y_label)
+  create_save_scatter_plot(paste0(ofilename, "_corr_above30_",sectorColumnFilePart), temp_per_year_sector, "above30", sectorCol, plot.title, "Days above 30°C", wheat_plot_y_label)
   progress$inc(0.2)
   
   # create barplot of indice value (not normalized) vs sector data
@@ -102,7 +102,7 @@ create.correlation.plots <- function(progress, user.file, sector.file, stationNa
   }
   df <- df[df$indice != "",]
   df$indice <- factor(df$indice, levels = found.indices) 
-  create_bar_plot(paste0(ofilename, "_indice_",sectorColumnFilePart,".jpg"), df, "indice", "cor", "category", plot.title, "", "")
+  create_bar_plot(paste0(ofilename, "_indice_",sectorColumnFilePart), df, "indice", "cor", "category", plot.title, "", "")
   
   progress$inc(0.1)
   # all ok
@@ -153,7 +153,12 @@ create_save_scatter_plot <- function(filename, df, x, y, plot.title, x.label, y.
     annotate("text", label = annotateText, x = annotateX, y = annotateY) +
     theme_grey(base_size = FONT_BASE_SIZE) +                                       # increase font size
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())  # remove the white gridlines
-  ggsave(filename, plot=p, width = 8, height = 6)
+  
+  ggsave(paste0(filename, ".jpg"), plot=p, width = 8, height = 6)
+  
+  # save csv file of data
+  df_csv <- df[, c("year", x, y)]
+  write.csv(df_csv, file = paste0(filename, ".csv"), row.names = FALSE)
 }
 
 # create bar plot of given dataframe. Variable z is the feature to be used to fill the bar.
@@ -167,5 +172,8 @@ create_bar_plot <- function(filename, df, x, y, z, plot.title, x.label, y.label)
     theme_grey(base_size = FONT_BASE_SIZE) +                                       # increase font size
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())  # remove the white gridlines
   
-  ggsave(filename, plot=p, width = 8, height = 6)
+  ggsave(paste0(filename, ".jpg"), plot=p, width = 8, height = 6)
+  
+  # save csv file of data
+  write.csv(df, file = paste0(filename, ".csv"), row.names = FALSE)
 }

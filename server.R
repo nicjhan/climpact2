@@ -74,7 +74,7 @@ server <- function(input, output, session) {
     
     output$sectorCorrelationLink <- renderText({
       sectorCorrelationChanges()
-      HTML(paste("View <a target=\"_blank\" href=",file_url,get.corr.dir(),"/\">plots</a>", sep=""))
+      HTML(paste("View <a target=\"_blank\" href=",file_url,get.corr.dir(),"/\">indices and plots</a>", sep=""))
     })
 
     stationLat <- reactive({
