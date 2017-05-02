@@ -7,7 +7,7 @@ library(ggplot2)
 source("climpact2.R")
 package.check()
 source("ancillary/climpact2.etsci-functions.r")
-source("industry_correlation.R")
+source("sector_correlation.R")
 
 try(servr::httw(host='0.0.0.0', port=4199, browser=FALSE, daemon=TRUE))
 
@@ -37,7 +37,7 @@ server <- function(input, output, session) {
     output$indiceCalculationError <- eventReactive(input$calculateIndices, {
         plotTitleMissing()
     })
-    
+
     # Validate sector plot title.
     sectorPlotTitleMissing <- reactive({
       validate(
@@ -56,7 +56,7 @@ server <- function(input, output, session) {
     indiceChanges <- reactive({
         input$calculateIndices
     })
-    
+
     sectorCorrelationChanges <- reactive({
       input$calculateSectorCorrelation
     })
@@ -71,7 +71,7 @@ server <- function(input, output, session) {
         indiceChanges()
         HTML(paste("View <a target=\"_blank\" href=",file_url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",file_url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",file_url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",file_url,get.thresh.dir(),"/\">thresholds</a> OR <a target=\"_blank\" href=",file_url,get.output.zipfile(),"\">download all</a>.", sep=""))
     })
-    
+
     output$sectorCorrelationLink <- renderText({
       sectorCorrelationChanges()
       HTML(paste("View <a target=\"_blank\" href=",file_url,get.corr.dir(),"/\">indices and plots</a>", sep=""))
@@ -119,7 +119,7 @@ server <- function(input, output, session) {
     	updateTabsetPanel(session, "mainNavbar",
                            selected="calculateIndices")
   	})
-	  
+
 	  # switch to getting started tab
 	  observeEvent(input$doGetStarted, {
 	    updateTabsetPanel(session, "mainNavbar",
@@ -168,7 +168,7 @@ server <- function(input, output, session) {
         if (error !=  "") {
             return(error)
         }
-        
+
         return("")
     })
 
@@ -200,32 +200,32 @@ server <- function(input, output, session) {
                                       constant.choice)
         return("")
     })
-    
+
     ## Correlation functionality
-    
+
     # React to upload
     observeEvent(input$sectorDataFile, {
       val <- strsplit(input$sectorDataFile$name, "[_\\.]")[[1]][1]
       updateTextInput(session, "sectorPlotName", value=val)
     })
-    
-    # Handle calculation of correlation between climate/industry data
+
+    # Handle calculation of correlation between climate/sector data
     output$sectorCorrelationError <- eventReactive(input$calculateSectorCorrelation, {
-      
+
       if(!exists("corrdir")){
         return("Correlation directory does not exist, please use Process button on Load & Check Data")
       }
-      
+
       climate.data <- dataFile()
       if (is.null(climate.data)) {
         return("Bad data file")
       }
-      
+
       sector.data <- sectorDataFile()
       if (is.null(sector.data)) {
         return("Bad sector data file")
       }
-      
+
       plotTitleMissing()
 
       plot.title <- input$sectorPlotName
@@ -243,7 +243,7 @@ server <- function(input, output, session) {
     outputOptions(output, "indiceCalculationError", suspendWhenHidden=FALSE)
     outputOptions(output, "qualityControlError", suspendWhenHidden=FALSE)
     outputOptions(output, "sectorCorrelationError", suspendWhenHidden=FALSE)
-    
+
     # toggle state of buttons depending on certain criteria
     observe(toggleState('doQualityControl', !is.null(input$dataFile)))
     observe(toggleState('calculateIndices', !is.null(input$dataFile)))

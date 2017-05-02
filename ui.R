@@ -10,7 +10,7 @@ if (Sys.info()["nodename"] == 'ip-172-31-0-164') {
 }
 
 ui <- tagList(
-    useShinyjs(), 
+    useShinyjs(),
     navbarPage(title="", id="mainNavbar", theme = shinytheme("cerulean"),
     tabPanel(title="Climpact2",
       fluidPage(

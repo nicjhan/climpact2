@@ -5,31 +5,31 @@ ClimPACT2 is an R software package that calculates the [ET-SCI](https://www.wmo.
 ### About this App
 This is a web app which can also be run on a personal computer without connecting to the Internet. It interfaces with the ClimPACT2 software and can be used to generate indices based on data and parameters provided by the user. This involves two steps which must be completed in order:
 
-1. **Load and check input data**.  
-2. **Calculate indices**.
+1. **Load and check input data**.
+2. **Calculate climate indices**.
 
-Use the navigation bar at the top of the page to perform these steps. 
+Use the navigation bar at the top of the page to perform these steps.
 
 ### How to Run this App
  To run the app locally on your computer with R installed:
 
 ```{bash}
-$ git clone https://github.com/nicjhan/climpact2-app.git
-$ cd climpact2-app
-$ R
+git clone https://github.com/nicjhan/climpact2-app.git
+cd climpact2-app
+R
 ```
 
 ```{r}
-> install.packages('shiny')
-> install.packages('shinythemes')
-> install.packages('markdown')
-> install.packages('servr')
-> install.packages('dplyr')
-> install.packages('corrplot')
-> install.packages('ggplot2')
-> install.packages('shinyjs')
-> library(shiny)
-> runApp('./')
+install.packages('shiny')
+install.packages('shinythemes')
+install.packages('markdown')
+install.packages('servr')
+install.packages('dplyr')
+install.packages('corrplot')
+install.packages('ggplot2')
+install.packages('shinyjs')
+library(shiny)
+runApp('./')
 ```
 The app will automatically start in your default browser.
 
