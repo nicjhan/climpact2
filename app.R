@@ -32,4 +32,4 @@ ui <- tagList(
   )
 )
 
-shinyApp(ui, shiny.server)
+shinyApp(ui, climpact.server)

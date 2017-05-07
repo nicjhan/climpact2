@@ -1,5 +1,5 @@
 
-shiny.server <- function(input, output, session) {
+climpact.server <- function(input, output, session) {
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
         stationName()
@@ -230,5 +230,4 @@ shiny.server <- function(input, output, session) {
     observe(toggleState('calculateIndices', !is.null(input$dataFile)))
     observe(toggleState('calculateSectorCorrelation', !is.null(input$dataFile) & !is.null(input$sectorDataFile)))
 }
-
 
