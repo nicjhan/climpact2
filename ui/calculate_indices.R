@@ -11,10 +11,10 @@ tabPanel(title="Calculate Climate Indices", value="calculateIndices", fluidPage(
         column(12,
             "See ",
             a("Section 3.5", target="_blank",
-              href=paste(file_url, "/user_guide/html/GUI.htm", sep="")),
+              href=paste("output.fileServerUrl", "/user_guide/html/GUI.htm", sep="")),
             " of the ",
             a("ClimPact2 user guide", target="_blank",
-              href=paste(file_url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
+              href=paste("output.fileServerUrl", "/user_guide/ClimPACT2_user_guide.htm", sep="")),
             " for help with the following fields.",
             br(),
             br()

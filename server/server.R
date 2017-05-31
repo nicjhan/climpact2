@@ -42,20 +42,68 @@ climpact.server <- function(input, output, session) {
       input$calculateSectorCorrelation
     })
 
+    fileServerUrl <- reactive({
+      paste(session$clientData$url_protocol, "//",
+            session$clientData$url_hostname, ":", 4199, "/", sep="")
+    })
+
+    userGuildLink <- reactive({
+      paste("<a target=\"_blank\" href=", fileServerUrl(),
+            "/user_guide/ClimPACT2_user_guide.htm> ClimPACT2 User Guide</a>.", sep="")
+    })
+    
+    appendixBLink <- reactive({
+      paste("<a target=\"_blank\" href=", fileServerUrl(),
+            "/user_guide/ClimPACT2_user_guide.htm> ClimPACT2 User Guide</a>.", sep="")
+    })
+
+    output$loadDatasetText <- renderText({
+      sydneySampleLink <- paste("<a target=\"_blank\" href=", fileServerUrl(),
+                                 "sample_data/sydney_observatory_hill_1936-2015.txt> sydney_observatory_hill_1936.txt </a>", sep="")
+      HTML(paste("The dataset <strong>must</strong> use the format described in ",
+                  appendixBLink(), " of the ", userGuildLink(), 
+                  "<br>", "<br>",
+                  "If you want a sample dataset, first save this sample ", sydneySampleLink,
+                  " and then load.", sep="")
+           )
+    })
+
+    output$loadSectorDataText <- renderText({
+      wheatSampleLink <- paste("<a target=\"_blank\" href=", fileServerUrl(),
+                                 "sample_data/wheat_yield_nsw_1922-1999.csv>  wheat_yield_nsw_1922-1999.csv </a>", sep="")
+      HTML(paste("The dataset <strong>must</strong> use the format described in ",
+                  appendixBLink(), " of the ", userGuildLink(), 
+                  "<br>", "<br>",
+                  "If you want a sample dataset, first save this sample ", wheatSampleLink,
+                  " and then load.", sep="")
+           )
+    })
+
     output$qcLink <- renderText({
         datasetChanges()
         qcDir <- get.qc.dir()
-        HTML(paste("Please view the <a target=\"_blank\" href=",file_url,qcDir,"/\">QC output</a> and carefully evaluate before continuing. Refer to <a target=\"_blank\" href=",file_url,"user_guide/html/appendixC.htm\">Appendix C</a> of the <a target=\"_blank\" href=",file_url, "/user_guide/ClimPACT2_user_guide.htm\">ClimPACT2 user guide</a> for help.", sep=""))
+        appendixCLink <- paste("<a target=\"_blank\" href=", fileServerUrl(),
+                               "/user_guide/html/appendixC.htm>", "Appendix C </a>", sep="")
+        HTML(paste("Please view the <a target=\"_blank\" href=", fileServerUrl(), qcDir,
+                   ">QC output</a> and carefully evaluate before continuing. Refer to ",
+                   appendixCLink, " of the ", userGuildLink(), " for help.", sep="")
+            )
     })
 
     output$indicesLink <- renderText({
         indiceChanges()
-        HTML(paste("View <a target=\"_blank\" href=",file_url,get.indices.dir(),"/\">indices</a>, <a target=\"_blank\" href=",file_url,get.plots.dir(),"/\">plots</a>,  <a target=\"_blank\" href=",file_url,get.trends.dir(),"/\">trends</a>, <a target=\"_blank\" href=",file_url,get.thresh.dir(),"/\">thresholds</a> OR <a target=\"_blank\" href=",file_url,get.output.zipfile(),"\">download all</a>.", sep=""))
+        indicesDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.indices.dir(), ">indices</a>", sep="")
+        plotsDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.plots.dir(), ">plots</a>", sep="")
+        trendsDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.trends.dir(), ">trends</a>", sep="")
+        threshDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.thresh.dir(), ">thresholds</a>", sep="") 
+        zipFileLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.output.zipfile(), ">download all</a>.", sep="")
+        HTML(paste("View ", indicesDirLink, ", ", plotsDirLink, ", ", trendsDirLink, ", ",
+                   threshDirLink, " OR ", zipFileLink, sep="")) 
     })
 
     output$sectorCorrelationLink <- renderText({
       sectorCorrelationChanges()
-      HTML(paste("View <a target=\"_blank\" href=",file_url,get.corr.dir(),"/\">indices and plots</a>", sep=""))
+      HTML(paste("View <a target=\"_blank\" href=", fileServerUrl(), get.corr.dir(), ">indices and plots</a>", sep=""))
     })
 
     stationLat <- reactive({

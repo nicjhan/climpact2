@@ -5,20 +5,7 @@ tabPanel(title="Sector Data Correlation", fluidPage(
             wellPanel(
           fileInput('sectorDataFile', NULL,
                 accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
-            "The dataset ",
-            strong("must"),
-            " use the format described in ",
-            a("Appendix B", target="_blank",
-              href=paste(file_url, "/user_guide/html/appendixB.htm", sep="")),
-            " of the ",
-            a("ClimPact2 user guide", target="_blank",
-              href=paste(file_url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
-            tags$hr(),
-            p('If you want a sample dataset,',
-              'first save this sample',
-              a("wheat_yield_nsw_1922-1999.csv", target="_blank",
-                href=paste(file_url, "sample_data/wheat_yield_nsw_1922-1999.csv", sep="")),
-              ' and then load.')
+            uiOutput("loadSectorDataText")
         )),
         column(6,
             h4('10. Sector Data Infomation'),
@@ -52,4 +39,4 @@ tabPanel(title="Sector Data Correlation", fluidPage(
               )
          )
     )
-)
+))

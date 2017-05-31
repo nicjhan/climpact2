@@ -79,5 +79,3 @@ To see the logs:
 ```{bash}
 cat /var/log/shiny-server.log
 ```
-
-

@@ -5,20 +5,7 @@ tabPanel(title="Load and Check Data", fluidPage(
             wellPanel(
           fileInput('dataFile', NULL,
                 accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
-            "The dataset ",
-            strong("must"),
-            " use the format described in ",
-            a("Appendix B", target="_blank",
-              href=paste(file_url, "/user_guide/html/appendixB.htm", sep="")),
-            " of the ",
-            a("ClimPact2 user guide", target="_blank",
-              href=paste(file_url, "/user_guide/ClimPACT2_user_guide.htm", sep="")),
-            tags$hr(),
-            p('If you want a sample dataset,',
-              'first save this sample',
-              a("sydney_observatory_hill_1936-2015.txt", target="_blank",
-                href=paste(file_url, "sample_data/sydney_observatory_hill_1936-2015.txt", sep="")),
-              ' and then load.')
+            uiOutput("loadDatasetText")
         )),
         column(4,
             h4('2. Enter Dataset Infomation'),
