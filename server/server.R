@@ -1,7 +1,53 @@
 
-# 
+# See the DeveloperGuide.md for a high-level description of this file.
+# The eventReactive()
+# (https://shiny.rstudio.com/reference/shiny/latest/observeEvent.html) handler
+# is used to trigger actions when certain user inputs are received.
 
 climpact.server <- function(input, output, session) {
+
+    # These element validate and return user input values.
+    # Validate latitude
+    stationLat <- reactive({
+        validate(
+            need(input$stationLat >= -90 && input$stationLat <= 90,
+                 'Latitude must be between -90 and 90.')
+        )
+        input$stationLat
+    })
+
+    # Validate longitude
+    stationLon <- reactive({
+        validate(
+            need(input$stationLon >= -180 && input$stationLon <= 180,
+                 'Longitude must be between -180 and 180')
+        )
+        input$stationLon
+    })
+
+    # Validate station name
+    stationName <- reactive({
+        validate(
+            need(input$stationName != "", message="Please enter a station name")
+        )
+        input$stationName
+    })
+
+    # Validate climate dataset
+    dataFile <- reactive({
+        validate(
+            need(!is.null(input$dataFile), message="Please load a dataset")
+        )
+        input$dataFile
+    })
+
+    # Validate sector dataset
+    sectorDataFile <- reactive({
+        validate(
+            need(!is.null(input$sectorDataFile), message="Please load a dataset")
+        )
+        input$sectorDataFile
+    })
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
         stationName()
@@ -60,28 +106,36 @@ climpact.server <- function(input, output, session) {
             "/user_guide/ClimPACT2_user_guide.htm> ClimPACT2 User Guide</a>.", sep="")
     })
 
+    # Create some html text to be displayed to the client.
     output$loadDatasetText <- renderText({
       sydneySampleLink <- paste("<a target=\"_blank\" href=", fileServerUrl(),
                                  "sample_data/sydney_observatory_hill_1936-2015.txt> sydney_observatory_hill_1936.txt </a>", sep="")
       HTML(paste("The dataset <strong>must</strong> use the format described in ",
-                  appendixBLink(), " of the ", userGuildLink(), 
+                  appendixBLink(), " of the ", userGuildLink(),
                   "<br>", "<br>",
                   "If you want a sample dataset, first save this sample ", sydneySampleLink,
                   " and then load.", sep="")
            )
     })
 
+    # Create some html text to be displayed to the client.
     output$loadSectorDataText <- renderText({
       wheatSampleLink <- paste("<a target=\"_blank\" href=", fileServerUrl(),
                                  "sample_data/wheat_yield_nsw_1922-1999.csv>  wheat_yield_nsw_1922-1999.csv </a>", sep="")
       HTML(paste("The dataset <strong>must</strong> use the format described in ",
-                  appendixBLink(), " of the ", userGuildLink(), 
+                  appendixBLink(), " of the ", userGuildLink(),
                   "<br>", "<br>",
                   "If you want a sample dataset, first save this sample ", wheatSampleLink,
                   " and then load.", sep="")
            )
     })
 
+    output$loadParamHelpText <- renderText({
+        section35Link <- paste("<a target=\"_blank\" href=", fileServerUrl(), "user_guide/html/GUI.htm> Section 3.5 </a>", sep="")
+        HTML(paste("See ", section35Link, " of the ", userGuildLink(), " for help with the following fields", sep=""))
+    })
+
+    # Create some html text to be displayed to the client.
     output$qcLink <- renderText({
         datasetChanges()
         qcDir <- get.qc.dir()
@@ -98,10 +152,10 @@ climpact.server <- function(input, output, session) {
         indicesDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.indices.dir(), ">indices</a>", sep="")
         plotsDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.plots.dir(), ">plots</a>", sep="")
         trendsDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.trends.dir(), ">trends</a>", sep="")
-        threshDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.thresh.dir(), ">thresholds</a>", sep="") 
+        threshDirLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.thresh.dir(), ">thresholds</a>", sep="")
         zipFileLink <- paste("<a target=\"_blank\" href=", fileServerUrl(), get.output.zipfile(), ">download all</a>.", sep="")
         HTML(paste("View ", indicesDirLink, ", ", plotsDirLink, ", ", trendsDirLink, ", ",
-                   threshDirLink, " OR ", zipFileLink, sep="")) 
+                   threshDirLink, " OR ", zipFileLink, sep=""))
     })
 
     output$sectorCorrelationLink <- renderText({
@@ -109,71 +163,40 @@ climpact.server <- function(input, output, session) {
       HTML(paste("View <a target=\"_blank\" href=", fileServerUrl(), get.corr.dir(), ">indices and plots</a>", sep=""))
     })
 
-    stationLat <- reactive({
-        validate(
-            need(input$stationLat >= -90 && input$stationLat <= 90,
-                 'Latitude must be between -90 and 90.')
-        )
-        input$stationLat
-    })
-
-    stationLon <- reactive({
-        validate(
-            need(input$stationLon >= -180 && input$stationLon <= 180,
-                 'Longitude must be between -180 and 180')
-        )
-        input$stationLon
-    })
-
-    stationName <- reactive({
-        validate(
-            need(input$stationName != "", message="Please enter a station name")
-        )
-        input$stationName
-    })
-
-    dataFile <- reactive({
-        validate(
-            need(!is.null(input$dataFile), message="Please load a dataset")
-        )
-        input$dataFile
-    })
-
-    sectorDataFile <- reactive({
-        validate(
-            need(!is.null(input$sectorDataFile), message="Please load a dataset")
-        )
-        input$sectorDataFile
-    })
 
     # switch to calculateIndices tab
-	  observeEvent(input$calculateIndicesTabLink, {
-    	updateTabsetPanel(session, "mainNavbar",
-                           selected="calculateIndices")
+	observeEvent(input$calculateIndicesTabLink, {
+        updateTabsetPanel(session, "mainNavbar",
+                          selected="calculateIndices")
   	})
 
-	  # switch to getting started tab
-	  observeEvent(input$doGetStarted, {
-	    updateTabsetPanel(session, "mainNavbar",
-	                      selected="gettingStarted")
-	  })
+    # Switch to getting started tab
+    observeEvent(input$doGetStarted, {
+        updateTabsetPanel(session, "mainNavbar",
+                          selected="gettingStarted")
+    })
 
+    # Fill in default values for station name and plot title based on the name
+    # of datafile.
     observeEvent(input$dataFile, {
         val <- strsplit(input$dataFile$name, "[_\\.]")[[1]][1]
         updateTextInput(session, "stationName", value=val)
         updateTextInput(session, "plotTitle", value=val)
     })
 
+    # Quality control processing has been requested by the user.
     output$qualityControlError <- eventReactive(input$doQualityControl, {
 
         # Set up globals in Climpact2
         global.vars()
 
+        # Check input file.
         file <- dataFile()
         if (is.null(file)) {
             return("Bad data file")
         }
 
+        # Validate inputs.
         latitude <- stationLat()
         longitude <- stationLon()
         station <- stationName()
@@ -189,11 +212,11 @@ climpact.server <- function(input, output, session) {
         # 'size', 'type', and 'datapath' columns. The 'datapath'
         # column will contain the local filenames where the data can
         # be found.
-
         progress <- shiny::Progress$new()
         on.exit(progress$close())
         progress$set(message="Processing data", value=0)
 
+        # Call into Climpact2 to do the quality control.
         error <- load.data.qc(progress, file$datapath, outputDir, latitude,
                               longitude, station,
                               base.year.start, base.year.end)
@@ -204,10 +227,13 @@ climpact.server <- function(input, output, session) {
         return("")
     })
 
+    # Index calculation has been requested by the user.
     output$indiceCalculationError <- eventReactive(input$calculateIndices, {
 
+        # Do some validation
         plotTitleMissing()
 
+        # Get inputs.
         plot.title <- input$plotTitle
         wsdi_ud <- input$wsdin
         csdi_ud <- input$csdin
@@ -226,6 +252,7 @@ climpact.server <- function(input, output, session) {
         on.exit(progress$close())
         progress$set(message="Calculating indices", value=0)
 
+        # Call into Climpact2 to calculate indices.
         error <- draw.step2.interface(progress, plot.title, wsdi_ud, csdi_ud,
                                       rx_ui, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD,
                                       Tb_GDD, custom_SPEI, var.choice, op.choice,
@@ -281,4 +308,3 @@ climpact.server <- function(input, output, session) {
     observe(toggleState('calculateIndices', !is.null(input$dataFile)))
     observe(toggleState('calculateSectorCorrelation', !is.null(input$dataFile) & !is.null(input$sectorDataFile)))
 }
-
