@@ -1,9 +1,12 @@
 
+# 
+
 climpact.server <- function(input, output, session) {
 
     output$qualityControlError <- eventReactive(input$doQualityControl, {
         stationName()
     })
+
     output$qualityControlError <- eventReactive(input$calculateIndices, {
         dataFile()
     })
@@ -51,7 +54,7 @@ climpact.server <- function(input, output, session) {
       paste("<a target=\"_blank\" href=", fileServerUrl(),
             "/user_guide/ClimPACT2_user_guide.htm> ClimPACT2 User Guide</a>.", sep="")
     })
-    
+
     appendixBLink <- reactive({
       paste("<a target=\"_blank\" href=", fileServerUrl(),
             "/user_guide/ClimPACT2_user_guide.htm> ClimPACT2 User Guide</a>.", sep="")
