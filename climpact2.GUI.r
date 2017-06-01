@@ -52,43 +52,58 @@ graphics.off()
 # extraQC code, taken from the "rclimdex_extraqc.r" package, 
 # Quality Control procedures programed by Enric Aguilar (C3, URV, Tarragona, Spain) and 
 # and Marc Prohom, (Servei Meteorologic de Catalunya). Edited by nherold to output to .csv (Jan 2016).
-allqc <- function (master, output, outrange = 4)
+allqc <- function (progress, master, output, outrange = 4)
 {
 	output <- paste(output, "/", ofilename, sep = "")
 	# fourboxes will produce boxplots for non-zero precip, tx, tn, dtr using the IQR entered previously
 	# the plot will go to series.name_boxes.pdf
 	# outliers will be also listed on a file (series.name_outliers.txt)
 	fourboxes(master, output, save = 1, outrange)
-	
+
+    progress$inc(0.05)
+
 	# Will plot a histogram of the decimal point to see rounding problems, for prec, tx, tn
 	# The plot will go to series.name_rounding.pdf. Needs some formal arrangements (title, nice axis, etc)
 	roundcheck(master, output, save = 1)
-	
+
+    progress$inc(0.05)
+
 	# will list when tmax <= tmin. Output goes to series.name_tmaxmin.txt
 	tmaxmin(master, output)
-	
+
+    progress$inc(0.05)
+
 	# will list values exceeding 200 mm or temperatures with absolute values over 50. Output goes to 
 	# series.name_toolarge.txt
 	humongous(master, output)
-	
+
+    progress$inc(0.05)
+
 	# 'Annual Time series' constructed with boxplots. Helps to identify years with very bad values
 	# Output goes to series.name_boxseries.pdf
 	boxseries(master, output, save = 1)
-	
+
+    progress$inc(0.05)
+
 	# Lists duplicate dates. Output goes to series.name_duplicates.txt	
 	duplivals(master, output)
-	
+
+    progress$inc(0.05)
+
 	# The next two functions (by Marc Prohom, Servei Meteorologic de Catalunya) identify consecutive tx and tn values with diferences larger than 20
 	# Output goes to series.name_tx_jumps.txt and series.name_tn_jumps.txt. The first date is listed. 
 	jumps_tx(master, output)
 	jumps_tn(master, output)
-	
+
+    progress$inc(0.05)
+
 	# The next two functions (by Marc Prohom, Servei Meteorologic de Catalunya)identify 
 	# series of 3 or more consecutive identical values. The first date is listed. 
 	# Output goes to series.name_tx_flatline.txt  and series.name_tx_flatline.txt
 	flatline_tx(master, output)
 	flatline_tn(master, output)
-	# tkmessageBox(message = "Extra Quality Control Routines finished!!!")
+
+    return("")
 }
 
 # A function that should be called before any .csv file is written. It appends some basic information that should be stored in each file for 
@@ -98,19 +113,19 @@ write_header <- function(filename,header="")
 	if(is.null(filename)) { stop("Filename not passed to function 'write_header'") }
 	
 	header = cbind("Description: ",header)
-	tmp = try(write.table(header, sep=",", file = filename, append = FALSE, row.names=FALSE,col.names = FALSE))
-	# Check if file is open
-	if(class(tmp)=="try-error") { tkmessageBox(message=paste("Error encountered, please check that the file ",filename," is not currently open, then select OK to try again.",sep=""),icon='warning');  write_header(filename) }
+    # No error checking here, file access is guaranteed because Climpact2 has own copy.
+	write.table(header, sep=",", file = filename, append = FALSE, row.names=FALSE,col.names = FALSE)
 
 	first_lines = cbind(c("Station: ","Latitude: ","Longitude: ","ClimPACT2_version: ","Date_of_calculation: "),c(ofilename,latitude,longitude,version.climpact,toString(Sys.Date())))
 	write.table(first_lines, sep=",", file = filename, append = TRUE, row.names=FALSE,col.names = FALSE)
 
 }
 
+
 check_open <- function(filename)
 {
-	tmp = try(write.table("test text", sep=",", file = filename, append = FALSE, row.names=FALSE,col.names = FALSE))
-	if(class(tmp)=="try-error") { tkmessageBox(message=paste("Error encountered, please check that the file ",filename," is not currently open, then select OK to try again.",sep=""),icon='warning');  check_open(filename) }
+    # No error checking here, file access is guaranteed because Climpact2 has own copy.
+	write.table("test text", sep=",", file = filename, append = FALSE, row.names=FALSE,col.names = FALSE)
 }
 
 # Plots boxplots. Needs only station and save
@@ -517,36 +532,24 @@ pplotts <- function(var = "prcp", type = "h", tit = NULL,cio,metadata)
 	}
 }
 
-# Creates an array of strings, each string containing a folder in the path to the user's file.
-# Globally assigns two variables: the array of strings and the final string (i.e. the file name)
-# This should be improved in the future (global variables should not be relied on)
-# The 'graphics' parameter indicates whether a progress bar is drawn to the screen via tcltk
-get.file.path <- function(user.file,graphics=FALSE) {
-	if(graphics) { process.pb <<- tkProgressBar("%", "Reading directory path...",0, 100, 10) }
-
-	outdirtmp<-strsplit(user.file,"/")[[1]]
-	file.name=outdirtmp[length(outdirtmp)]
-	e=strsplit(file.name,"\\.")[[1]]
-	if(graphics) { 
-		setTkProgressBar(process.pb,40,label="								")
-		setTkProgressBar(process.pb,40,label="Splitting directory path...") 
-	}
-	ofilename=substr(file.name,start=1,stop=nchar(file.name)-nchar(e[length(e)])-1)
-	assign('outdirtmp',outdirtmp,envir=.GlobalEnv)
-	assign('ofilename',ofilename,envir=.GlobalEnv)
-	if(graphics) { close(process.pb) }
-}
 
 # This function calls the major routines involved in reading the user's file, creating the climdex object and running quality control
-load.data.qc <- function() {
-	user.file <- get.user.file()
-	if(is.null(user.file)) { tkfocus(start1) ; return() } 
-	get.file.path(user.file,graphics=TRUE)
-	
-		# put convert.user.file into a trycatch?
-	user.data <- read.user.file(user.file,graphics=TRUE)
-	if(!is.null(user.data)) draw.step1.interface(user.data,user.file)
+load.data.qc <- function(progress, user.file, outputDir, latitude, longitude, station.entry, base.year.start,base.year.end)
+{
+    outdirtmp <- outputDir
+    ofilename <- station.entry
+	assign('outdirtmp',outdirtmp,envir=.GlobalEnv)
+	assign('ofilename',ofilename,envir=.GlobalEnv)
+
+	user.data <- read.user.file(user.file)
+    # Increment progress bar.
+    progress$inc(0.1)
+
+	error <- draw.step1.interface(progress, user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end)
+    return(error)
 }
+
+
 
 # Preps data and creates the climdex.input object based on the R package climdex.pcic
 create.climdex.input <- function(user.data,metadata) {
@@ -574,42 +577,23 @@ create.climdex.input <- function(user.data,metadata) {
 	return(cio)
 }
 
+
 # This function runs QC functionality on the user specified input data. It requres as input;
 #    - metadata: output of create.metadata()
 #    - data: output of convert.user.file
-#    - graphics: boolean for whether running with graphics or not (determines whether progress bars, message windows etc. are shown).
-QC.wrapper <- function(metadata, user.data, user.file, graphics) {
-	if(graphics) { process.pb <<- tkProgressBar("%", "Checking latitude/longitude, base period...",0, 100, 10) }
-
-	##############################
-	# Check for valid lat/lons
-	if (is.na(metadata$lat)  == TRUE | is.na(metadata$lon) == TRUE | metadata$lat < -90 | metadata$lat > 90 | metadata$lon > 180 | metadata$lon < -180) {
-	  tkmessageBox(message = paste("Please enter a valid latitude (-90 to +90) and longitude (-180 to +180).",sep = ""))
-	  close(process.pb)
-	  return() }
+# Error checking on inputs has already been complete by the GUI.
+QC.wrapper <- function(progress, metadata, user.data, user.file) {
 
 	# Check base period is valid when no thresholds loaded
 	if(is.null(quantiles)) {
-	        if(metadata$base.start < format(metadata$dates[1],format="%Y") | metadata$base.end > format(metadata$dates[length(metadata$dates)],format="%Y") | metadata$base.start > metadata$base.end) {
-	                if(graphics) { close(process.pb) ; tkmessageBox(message = paste("Base period must be between ", format(metadata$dates[1],format="%Y")," and ",format(metadata$dates[length(metadata$dates)],format="%Y"),". Please correct.",sep="")) ; return() } }
+        if(metadata$base.start < format(metadata$dates[1],format="%Y") | metadata$base.end > format(metadata$dates[length(metadata$dates)],format="%Y") | metadata$base.start > metadata$base.end) {
+            return(paste("Base period must be between ", format(metadata$dates[1],format="%Y")," and ",format(metadata$dates[length(metadata$dates)],format="%Y"),". Please correct."))
+        }
 	}
-
-	# Check base period is valid when thresholds ARE loaded. 
-#	if (!is.null(quantiles) && ((base.year.start >= format(metadata$dates[1],format="%Y") && base.year.start <= format(metadata$dates[length(metadata$dates)],format="%Y")) | 
-#		(base.year.end <= format(metadata$dates[length(metadata$dates)],format="%Y") && base.year.end >= format(metadata$dates[1],format="%Y"))))
-#	{
-#	if(graphics) { 
-#		tkmessageBox(message = paste("The base period of your loaded thresholds ","(",base.year.start," to ",base.year.end,") must lie outside of the current data's date range (",format(metadata$dates[1],format="%Y")," to ",
-#                      format(metadata$dates[length(metadata$dates)],format="%Y"),").",sep = "")) }
-#		return()
-#	}
 
 	# Check for ascending order of years
 	if(!all(user.data$year == cummax(user.data$year))) {
-				close(process.pb)
-                tkmessageBox(message = "Years are not in ascending order, please check your input file.",icon = "warning", title = "ClimPACT2 - warning")
-				if(exists("reading.pb")) { tkfocus(start1) }
-                return()
+        return("Years are not in ascending order, please check your input file.")
 	}
 
     ##############################
@@ -642,6 +626,8 @@ QC.wrapper <- function(metadata, user.data, user.file, graphics) {
 	nam1 <- paste(outthresdir, paste(ofilename, "_thres.csv", sep = ""),sep="/")
 	write.table(as.data.frame(thres), file = nam1, append = FALSE, quote = FALSE, sep = ", ", na = "NA", col.names = c(paste("tmax",names(cio@quantiles$tmax$outbase),sep="_"),paste("tmin",names(cio@quantiles$tmin$outbase),sep="_"),
 	paste("tavg",names(cio@quantiles$tavg$outbase),sep="_"),paste("prec",names(cio@quantiles$prec),sep="_"),"HW_TN90","HW_TX90","HW_TAVG90"),row.names=FALSE) 
+
+    progress$inc(0.1)
 	
     # write raw tmin, tmax and prec data for future SPEI/SPI calcs
 	yeardate2 <- format(cio@dates,format="%Y")
@@ -652,6 +638,8 @@ QC.wrapper <- function(metadata, user.data, user.file, graphics) {
 	nam2 <- paste(outthresdir, paste(ofilename, "_thres_spei.csv", sep = ""),sep="/")
     write.table(as.data.frame(thres2), file = nam2, append = FALSE, quote = FALSE, sep = ", ", na = "NA", col.names = c("Base_period_dates","Base_period_tmin","Base_period_tmax","Base_period_prec"),row.names=FALSE)
 
+    progress$inc(0.1)
+
     ##############################
 	# Set some text options
 	if(metadata$lat<0) lat_text = "°S" else lat_text = "°N"
@@ -660,14 +648,8 @@ QC.wrapper <- function(metadata, user.data, user.file, graphics) {
 	Encoding(lat_text) <- "UTF-8"
 	title.station <- paste(ofilename, " [", metadata$lat,lat_text, ", ", metadata$lon,lon_text, "]", sep = "")
 	assign("title.station", title.station, envir = .GlobalEnv)
-#	assign("ofilename", ofilename, envir = .GlobalEnv)
 
 	##############################
-	# output plots for tmin, tmax, prcp and dtr
-	if(graphics) { 
-		setTkProgressBar(process.pb,40,label="									")
-		setTkProgressBar(process.pb,40,label="Creating data plots...") 
-	}
 
 	nam1 <- paste(outlogdir, paste(ofilename, "_prcpPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
@@ -685,29 +667,35 @@ QC.wrapper <- function(metadata, user.data, user.file, graphics) {
 	nam1 <- paste(outlogdir, paste(ofilename, "_tmaxPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
 	pdf(file = nam1)
+
+    progress$inc(0.1)
+
 	pplotts(var = "tmax", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 	nam1 <- paste(outlogdir, paste(ofilename, "_tminPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
 	pdf(file = nam1)
+
+    progress$inc(0.1)
+
 	pplotts(var = "tmin", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 	nam1 <- paste(outlogdir, paste(ofilename, "_dtrPLOT.pdf", sep = ""), sep = "/")
 	check_open(nam1)
 	pdf(file = nam1)
+
+    progress$inc(0.1)
+
 	pplotts(var = "dtr", type = "l", tit = ofilename,cio=cio,metadata=metadata)
 	dev.off()
 
 	##############################
 	# Call the ExtraQC functions.
 	print("TESTING DATA, PLEASE WAIT...",quote=FALSE)
-	if(graphics) { 
-		setTkProgressBar(process.pb,80,label="									")
-		setTkProgressBar(process.pb,80,label="Calling quality control functions...") 
-	}
 
-	allqc(master = paste(user.file,".temporary",sep=""), output = outqcdir, outrange = 3) #stddev.crit)   # extraQC is called here. NOTE the default outrange=3 in original verson.
-	if(graphics) tclvalue(qc.yes) <<- TRUE  # the QC step is done, so you can continue...
+    temp.file <- tempfile()
+    file.copy(user.file, temp.file)
+	error <- allqc(progress, master = temp.file, output = outqcdir, outrange = 3) #stddev.crit)
 
 	##############################	
 	# Write out NA statistics.
@@ -715,40 +703,10 @@ QC.wrapper <- function(metadata, user.data, user.file, graphics) {
 
 	##############################	
 	# Remove temporary file
-	system(paste("rm ",user.file,".temporary",sep=""))
+	system(paste("rm ", temp.file, sep=""))
 
-	##############################
-	# Draw 'QC complete' window
-	# This windowing code is admittedly verbose due to poor documentation of tcltk functions and time constraints.
-	if(graphics) {
-		close(process.pb)
-		tkdestroy(infor1)
-		white1.green2()
+    return(error)
 
-		proc.complete.done <- function() { tkdestroy(proc.complete) }
-	
-		proc.complete <<- tktoplevel(bg = "white")
-		tkfocus(proc.complete)
-		tkwm.title(proc.complete, "\tClimPACT2\t")
-		tt2 <- tkframe(proc.complete,bg="white")
-		frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-		tkgrid(frame.space); tkgrid(tklabel(tt2, text = "QUALITY CONTROL COMPLETE", bg = "white", font = fontHeading2),columnspan=1);tkgrid(frame.space); tkgrid(tt2)
-	
-		tt2 <- tkframe(proc.complete,bg="white")
-		frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-		tkgrid(frame.space)
-
-		tkgrid(tklabel(tt2,text=paste("Carefully evaluate output in the following directory \nfor potential issues before continuing.\n\n",outlogdir,"\n\nRefer to Appendix C in the ClimPACT2 user guide for help.","\n\nOnce you are satisfied with the quality of your data, proceed to Step 2.",sep="")
-				,bg='white',font=font_small),sticky="nsew")
-
-		tkgrid(frame.space)
-		tkgrid(tt2)
-	
-		tt2 <- tkframe(proc.complete,bg="white"); frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white");tkgrid(frame.space);tkgrid(tt2)
-		tt2 <- tkframe(proc.complete,bg="white"); ok1.but<-tkbutton(tt2,text="    Done    ",command=proc.complete.done,bg='white',font=font_small);tkgrid(ok1.but);tkgrid(tt2)
-		tt3 <- tkframe(proc.complete,bg="white");frame.space <- tklabel(tt3, text = " ", font = font_small, bg = "white");tkgrid(frame.space);tkgrid(tt3)
-		loaded <<- TRUE
-	}
 } # end of QC.wrapper()
 
 write.NA.statistics <- function(cio) { 
@@ -787,183 +745,57 @@ check.and.create.dates <- function(user.data) {
 }
 
 # This function draws the "Step 1" interface that lets user enter station metadata and run QC on their file.
-draw.step1.interface <- function(user.data,user.file) {
-	cheat.wrapper <- function () { 
-		latitude  <- as.numeric(tclvalue(latentry))   # get user-input parameter, and check if they're valid.
-        longitude <- as.numeric(tclvalue(lonentry))
-        ofilename <<- tclvalue(station.entry)
-        outdirtmp[length(outdirtmp)] <<- ofilename
-        base.year.start<-as.numeric(tclvalue(base.year.start.tcl));  assign("base.year.start",base.year.start,envir=.GlobalEnv)
-		base.year.end<-as.numeric(tclvalue(base.year.end.tcl));    assign("base.year.end",base.year.end,envir=.GlobalEnv)
-		
-        user.data <- check.and.create.dates(user.data)
-		create.dir(user.file)
-		metadata <- create.metadata(latitude,longitude,base.year.start,base.year.end,user.data$dates,ofilename)
-		assign("metadata",metadata,envir=.GlobalEnv)
-		QC.wrapper(metadata,user.data,user.file,graphics=TRUE)
-	}
-	
-	cancel1 <- function() {
-		cio <<- NULL
-		quantiles <<- NULL
-		loaded <<- FALSE
-		tkdestroy(infor1)
-		green1.white2()
-		return() 
-	}
+draw.step1.interface <- function(progress, user.data, user.file, latitude, longitude, station.entry, base.year.start, base.year.end) {
+    ofilename <<- station.entry
 
-	infor1 <<- tktoplevel(bg = "white")
-	tkfocus(infor1)
-	tkwm.geometry(infor1, "+300+200") # position in upper left corner of screen
-	tkwm.title(infor1, "ClimPACT2 - Data preperation")	
+    assign("base.year.start",base.year.start,envir=.GlobalEnv)
+    assign("base.year.end",base.year.end,envir=.GlobalEnv)
 
-        load.help<-function(){    # tip for the title in all plots.
-                tkmessageBox(message=paste("Station name: name of the recording station that data originated from. This will be used to name output files and directories.",
-					"Latitude/Longitude: geographical coordinates of the station in decimal form (-90 to +90 and -180 to +180).",
-					"Base period: a beginning and end year (four digits) to use as a reference period to calculate percentile thresholds.",
-#					"[OPTIONAL] Load additional field: an additional time-series of data (which can represent anything) to load and plot with the indices. The file must be formatted similarly to your climate data file and must contain identical dates. e.g. [year,month,day,data].",
-					sep="\n\n"),icon='question')
-        }
+    user.data <- check.and.create.dates(user.data)
+    create.dir()
+    metadata <- create.metadata(latitude,longitude,base.year.start,base.year.end,user.data$dates,ofilename)
+    assign("metadata",metadata,envir=.GlobalEnv)
 
-	station.entry <- tclVar(ofilename)
-	tt1 <- tkframe(infor1, bg = "white")
-	frame.space <- tklabel(tt1, text = " ", font = font_small, bg = "white")
-	tkgrid(tklabel(tt1, text = paste("FILE:", user.file, ""), bg = "white", font = font_small))
-	tkgrid(tt1)
-
-	tt1 <- tkframe(infor1, bg = "white")
-	help1<-tkbutton(tt1,text='?',command=load.help,bg='white')
-	tkgrid(tklabel(tt1, text = "ENTER RECORD INFORMATION", bg = "white", font = fontHeading2),help1)
-	tkgrid(frame.space)
-	tkgrid(tt1)
-
-	# enter station name
-	tt1 <- tkframe(infor1, bg = "white")
-	tkgrid(tklabel(tt1, text = "STATION NAME", bg = "white", font = font_small))
-	textEntryWidget1 <- tkentry(tt1, width = 20, textvariable = station.entry, bg = "white")
-	tkgrid(textEntryWidget1)
-	frame.space <- tklabel(tt1, text = " ", font = font_small, bg = "white")
-	tkgrid(frame.space)
-	tkgrid(tt1)
-
-	tt1<-tkframe(infor1,bg="white")
-	LatEntry <- tkentry(tt1, width = 6, textvariable = latentry, bg = "white")
-	LonEntry <- tkentry(tt1, width = 6, textvariable = lonentry, bg = "white")
-	tkgrid(tklabel(tt1, text = "LATITUDE:", bg = "white", font = font_small),LatEntry,tklabel(tt1, text="LONGITUDE:", bg = "white", font = font_small),LonEntry)
-	tkgrid(tt1)
-
-	tt1<-tkframe(infor1,bg="white")
-	frame.space <- tklabel(tt1, text = " ", font = font_small, bg = "white")
-	lab1<-tklabel(tt1,text=' BASE PERIOD',bg='white',font=font_small)
-	tkgrid(frame.space)
-	tkgrid(frame.space)
-	tkgrid(lab1)
-	tkgrid(tt1)
-
-	tt1<-tkframe(infor1,bg="white")
-	lab2<-tklabel(tt1,text=' to ',bg='white',font=font_small)
-	enter1<-tkentry(tt1,width=6,textvariable=base.year.start.tcl,bg='white')
-	enter2<-tkentry(tt1,width=6,textvariable=base.year.end.tcl,bg='white')
-	tkgrid(enter1,lab2,enter2)
-	tkgrid(tt1)
-
-	tt1<-tkframe(infor1,bg="white")
-	frame.space <- tklabel(tt1, text = " ", font = font_small, bg = "white")
-	tkgrid(frame.space)
-	tkgrid(tkbutton(tt1, text = "PROCESS AND\nQUALITY CONTROL",command=cheat.wrapper, font = fontHeading2, bg = "white"))
-	tkgrid(frame.space)
-	tkgrid(frame.space)
-	tkgrid(tt1)
-
-	tt1<-tkframe(infor1,bg="white")
-	cancel1.but<-tkbutton(tt1,text="  CANCEL  ",command=cancel1,bg='white',font=font_small)
-	frame.space <- tklabel(tt1, text = " ", font = font_small, bg = "white")
-
-	tkgrid(frame.space)
-	tkgrid(frame.space)
-	tkgrid(cancel1.but)
-	frame.space <- tklabel(tt1, text = " ", font = font_small, bg = "white")
-
-	tkgrid(frame.space)
-	tkgrid(frame.space)
-	tkgrid(tt1)
-} # end of draw.step1.interface
-
-# Paint button 1 green and button 2 white.
-green1.white2 <- function() {
-	tkconfigure(start.but,bg="lightgreen",text = "   LOAD AND  \n  CHECK DATA   ", command = load.data.qc, width = 15, font = fontHeading2)
-	tkconfigure(cal.but,bg="white",text = "   CALCULATE \n   INDICES  ", command = draw.step2.interface, width = 15, font = fontHeading2)
+    progress$inc(0.1)
+    error <- QC.wrapper(progress, metadata,user.data, user.file)
+    return(error)
 }
 
-# Paint button 1 white and button 2 green.
-white1.green2 <- function() {
-	tkconfigure(start.but,bg="white",text = "   LOAD AND  \n  CHECK DATA   ", command = load.data.qc, width = 15, font = fontHeading2)
-	tkconfigure(cal.but,bg="lightgreen",text = "   CALCULATE \n   INDICES  ", command = draw.step2.interface, width = 15, font = fontHeading2)
-}
 
-# Let the user select a text file through a graphical menu. Return the file name and path.
-get.user.file <- function() {
-	dir.file.name <- tclvalue(tkgetOpenFile(filetypes="{{TEXT Files} {.txt}}"))
-	if (dir.file.name=="") { return(); tkfocus(start1) }
-	return(dir.file.name)
-}
 
-# Given a user's RClimdex text file path, read in, convert -99.9 to NA and return contents as array of 6 columns.
-# The 'graphics' parameter indicates whether a progress bar is drawn to the screen via tcltk
-read.user.file <- function(user.file,graphics=FALSE) {
-# 	if(graphics) { process.pb <<- tkProgressBar("%", "Creating temporary file...",0, 100, 10) }
-	temp.filename = paste(user.file,".temporary",sep="")
+# Given a user's RClimdex text file path, read in, convert -99.9 to NA and
+# return contents as array of 6 columns.
+read.user.file <- function(user.file) {
+	temp.filename = tempfile()
 	raw.table = readLines(user.file)
 	newtext = gsub(",","\t",raw.table)
 	cat(newtext,file=temp.filename,sep="\n")
 
-#	if(graphics) { 
-#		setTkProgressBar(process.pb,80,label="								")
-#		setTkProgressBar(process.pb,80,label="Reading data...") 
-#	}
-	
 	data <- tryCatch(read.table(temp.filename,header=F,col.names=c("year","month","day","prcp","tmax","tmin"),colClasses=rep("real",6)),
 			error= function(c) {
-				if(graphics) { tkmessageBox(message = paste("Your input file doesn't appear to be formatted correctly. \n\nError returned was: ",c$message,
-								"\n\nPlease correct your file, see the manual for correct formatting.", sep=""),icon = "warning", title = "ClimPACT2 - warning")
-								close(process.pb)
-								#tkfocus(start1)
-								#load.data.qc()
-				} else { print(paste("INPUT FILE NOT FORMATTED CORRECTLY.\n\n",c$message,sep="")) }
-				} )
+				     print(paste("INPUT FILE NOT FORMATTED CORRECTLY.\n\n",c$message,sep="")) })
 
 	# Replace -99.9 data with NA
 	if(!is.null(data)) { data$prcp[data$prcp==-99.9]=NA ; data[data$tmax==(-99.9),"tmax"]=NA ; data[data$tmin==(-99.9),"tmin"]=NA }
 
-#	if(graphics) { close(process.pb) }
 	return(data)
 }
 
 # Create directories for output. Requires get.file.path to be called beforehand. That functionality was moved to a separate function
 # so that the directory could be modified by the user in the ClimPACT2 GUI.
 # Undesirably these are currently kept as global variables.
-create.dir <- function(user.file) {
-	# create directory names
-	if(length(outdirtmp)<=2) {
-		dirsplit<-strsplit(user.file,":")[[1]][1]
-		outinddir<-paste(dirsplit,"indices",sep=":/")
-		outlogdir<-paste(dirsplit,"qc",sep=":/")
-		outjpgdir<-paste(dirsplit,"plots",sep=":/")
-		outtrddir<-paste(dirsplit,"trend",sep=":/")
-		outthresdir<-paste(dirsplit,"thres",sep=":/")  # to save *_thres.csv files   
-		outqcdir<-paste(dirsplit,"qc",sep=":/")   # save results from extraqc
-	} else{
-		outdir<-outdirtmp[1]
-		for(i in 2:(length(outdirtmp)-1))
-		outdir<-paste(outdir,outdirtmp[i],sep="/")
-		outinddir<-paste(outdir,"indices",sep="/")
-		outlogdir<-paste(outdir,"qc",sep="/")
-		outjpgdir<-paste(outdir,"plots",sep="/")
-		outtrddir<-paste(outdir,"trend",sep="/")
-		outqcdir<-paste(outdir,"qc",sep="/")    # save results from extraqc
-		outthresdir<-paste(outdir,"thres",sep="/")   # to save *_thres.csv files 
-	}
-	
+create.dir <- function() {
+
+    outdir<-outdirtmp
+    outinddir<-paste(outdir,"indices",sep="/")
+    outlogdir<-paste(outdir,"qc",sep="/")
+    outjpgdir<-paste(outdir,"plots",sep="/")
+    outtrddir<-paste(outdir,"trend",sep="/")
+    outqcdir<-paste(outdir,"qc",sep="/")    # save results from extraqc
+    outthresdir<-paste(outdir,"thres",sep="/")   # to save *_thres.csv files 
+    zipfile<-paste(outdir,".zip",sep="")
+    corrdir<-paste(outdir,"corr",sep="/")   # save correlation files
+
 	# Create subdirectories if non-existent
 	if(!file.exists(paste(outinddir,ofilename,sep="/"))) { dir.create(outinddir,showWarnings=FALSE) ; dir.create(paste(outinddir,ofilename,sep="/")) }
 	if(!file.exists(paste(outlogdir,ofilename,sep="/"))) { dir.create(outlogdir,showWarnings=FALSE) ; dir.create(paste(outlogdir,ofilename,sep="/")) }
@@ -971,6 +803,7 @@ create.dir <- function(user.file) {
 	if(!file.exists(paste(outtrddir,ofilename,sep="/"))) { dir.create(outtrddir,showWarnings=FALSE) ; dir.create(paste(outtrddir,ofilename,sep="/")) }
 	if(!file.exists(paste(outqcdir,ofilename,sep="/")))  { dir.create(outqcdir,showWarnings=FALSE) ; dir.create(paste(outqcdir,ofilename,sep="/")) }
 	if(!file.exists(paste(outthresdir,ofilename,sep="/"))) { dir.create(outthresdir,showWarnings=FALSE) ; dir.create(paste(outthresdir,ofilename,sep="/")) }
+  if(!file.exists(paste(corrdir,ofilename,sep="/"))) { dir.create(corrdir,showWarnings=FALSE) ; dir.create(paste(corrdir,ofilename,sep="/")) }
 	
 	# modify subdirectory names
 	outinddir <- paste(outinddir,ofilename,sep="/")
@@ -979,6 +812,7 @@ create.dir <- function(user.file) {
 	outtrddir <- paste(outtrddir,ofilename,sep="/")
 	outqcdir <- paste(outqcdir,ofilename,sep="/")
 	outthresdir <- paste(outthresdir,ofilename,sep="/")
+	corrdir <- paste(corrdir,ofilename,sep="/")
 	
 	# save the directory as global variable for use somewhere else.
 	assign("outinddir",outinddir,envir=.GlobalEnv)
@@ -987,6 +821,8 @@ create.dir <- function(user.file) {
 	assign("outtrddir",outtrddir,envir=.GlobalEnv)
 	assign("outqcdir", outqcdir, envir=.GlobalEnv)
 	assign("outthresdir",outthresdir,envir=.GlobalEnv)
+	assign("zipfile",zipfile,envir=.GlobalEnv)
+	assign("corrdir",corrdir,envir=.GlobalEnv)
 }
 
 # return True (T) if leapyear, esle F
@@ -1004,143 +840,44 @@ leapyear <- function(year)
   }
 }
 
+
 # This function houses the beginning screen for "Step 2" in the GUI (i.e. calculating the indices). It reads in user preferences for the indices 
 # and calls the index functions for calculation and plotting.
-draw.step2.interface <- function() {
-	if(is.null(cio)) {
-		tkmessageBox(message = "Please load and \ncheck data first.",
-		icon = "warning", title = "ClimPACT2 - warning")
-		tkfocus(start1)
-		return()
-	}
+draw.step2.interface <- function(progress, plot.title, wsdi_ud, csdi_ud, rx_ud, txtn_ud, rnnmm_ud, Tb_HDD, Tb_CDD, Tb_GDD, custom_SPEI, var.choice, op.choice, constant.choice) {
    
-	if(exists("proc.complete")) tkdestroy(proc.complete)
-	tkdestroy(infor1)
-	infor <- tktoplevel(bg = "white")
-	tkfocus(infor)
-	tkgrab.set(infor)
-	tkwm.geometry(infor, "+300+200")
-	tkwm.title(infor,"Set Parameter Values")
-	
-	textEntry13 <- Entry13
-	textEntry14 <- Entry14
-	textEntry15 <- Entry15
-	textEntry16 <- Entry16
-	textEntry17 <- Entry17
-	textEntry20 <- Entry20  #for user-defined location-specific base temperature Tb
-	textEntry21 <- Entry21
-	textEntry22 <- Entry22
-	textEntry23 <- Entry23
-	textEntry24 <- Entry24
-	
-	tkpack(tklabel(infor, text = "User defined parameters for Indices Calculation", font = fontHeading1, bg = "white"), side = "top")
-	
-	help.title<-function(){
-		tkmessageBox(message=paste('# = station name.\n e.g. If you input "station #"\nYou can get \nstation ',title.station,sep=''),icon='question')
-	}
-	
-	tt1=tkframe(infor,bg='white')   # add a "?" to the current window.
-	textEntry3<-tclVar('Station: #')
-	textEntryWidget3<-tkentry(tt1,width=30,textvariable=textEntry3,bg='white')
-	help1=tkbutton(tt1,text=' ? ',command=help.title,bg='white')
-	
-	# User defined title for plotting
-	tkpack(tklabel(tt1,text='User defined title for plotting:',bg='white',font=font_small),side='left')
-	tkpack(textEntryWidget3,side='left')
-	tkpack(tklabel(tt1,text='    ',bg='white'),side='left')
-	tkpack(help1,side='right')
-	tkpack(tt1)
-	
-	tt1<-tkframe(infor,bg='white')
+    assign('plot.title',plot.title,envir=.GlobalEnv)
+    
+    assign("wsdi_ud",as.double(wsdi_ud),envir=.GlobalEnv) # wsdi wsdi_ud
+    assign("csdi_ud",as.double(csdi_ud),envir=.GlobalEnv)    #  csdi_ud
+    assign("rx_ud",as.double(rx_ud),envir=.GlobalEnv)# 14 rx_ud
+    assign("txtn_ud",as.double(txtn_ud),envir=.GlobalEnv)# txtn_ud
+    assign("rnnmm_ud",as.double(rnnmm_ud),envir=.GlobalEnv)# txtn_ud
+    assign("Tb_HDD",as.double(Tb_HDD),envir=.GlobalEnv) # Tb for HDDheat
+    assign("Tb_CDD",as.double(Tb_CDD),envir=.GlobalEnv) # Tb for HDDcold
+    assign("Tb_GDD",as.double(Tb_GDD),envir=.GlobalEnv) # Tb for HDDgrow
+    assign("custom_SPEI",as.double(custom_SPEI),envir=.GlobalEnv) # custom SPEI/SPI time period
 
-	textEntryWidget13<-tkentry(tt1,width=10,textvariable=textEntry13,bg='white') # WSDI
-	textEntryWidget14<-tkentry(tt1,width=10,textvariable=textEntry14,bg='white') # CSDI
-	textEntryWidget15<-tkentry(tt1,width=10,textvariable=textEntry15,bg='white') # RX
-	textEntryWidget16<-tkentry(tt1,width=10,textvariable=textEntry16,bg='white') # TXTN
-	textEntryWidget20<-tkentry(tt1,width=10,textvariable=textEntry20,bg='white') # Tb for HDDheat
-	textEntryWidget21<-tkentry(tt1,width=10,textvariable=textEntry21,bg='white') # Tb for CDDcold
-	textEntryWidget22<-tkentry(tt1,width=10,textvariable=textEntry22,bg='white') # Tb for GDDgrow
-	textEntryWidget17<-tkentry(tt1,width=10,textvariable=textEntry17,bg='white') # Rnnmm
-	textEntryWidget23<-tkentry(tt1,width=10,textvariable=textEntry23,bg='white')
-	textEntryWidget24<-tkentry(tt1,width=10,textvariable=textEntry24,bg='white')
+    assign("var.choice",var.choice,envir=.GlobalEnv)
+    assign("op.choice",op.choice,envir=.GlobalEnv)
+    assign("constant.choice",constant.choice,envir=.GlobalEnv)
 
-	tkgrid(tklabel(tt1,text="",bg='white',font=font_small))
-	tkgrid(tklabel(tt1,text="Refer to Section 3.5 of ClimPACT2 user guide for help",bg='white',font=font_small_bold))
-	tkgrid(tklabel(tt1,text="User defined WSDId Days",bg='white',font=font_small),textEntryWidget13) # 13 wsdi
-	tkgrid(tklabel(tt1,text="User defined CSDId Days",bg='white',font=font_small),textEntryWidget14) # 14 csdi
-	tkgrid(tklabel(tt1,text="User defined Rxdday Days",bg='white',font=font_small),textEntryWidget15) # 15 rxday
-	tkgrid(tklabel(tt1,text="User defined n for TXdTNd and TXbdTNbd",bg='white',font=font_small),textEntryWidget16) # txtn
-	tkgrid(tklabel(tt1,text="User defined base temperature for HDDheatn",bg='white',font=font_small),textEntryWidget20) # Tb for HDDheat
-	tkgrid(tklabel(tt1,text="User defined base temperature for CDDcoldn",bg='white',font=font_small),textEntryWidget21) # Tb for CDDcold
-	tkgrid(tklabel(tt1,text="User defined base temperature for GDDgrown",bg='white',font=font_small),textEntryWidget22) # Tb for GDDgrow
-	tkgrid(tklabel(tt1,text="Count the number of days where precipitation >= nn (Rnnmm)",bg='white',font=font_small),textEntryWidget17)
-	tkgrid(tklabel(tt1,text="Calculate SPEI/SPI over custom months (3,6,12 done automatically)",bg='white',font=font_small),textEntryWidget23)
+    print("var.choice")
+    print(var.choice)
 
-	tkgrid(tklabel(tt1,text="",bg='white',font=font_small))
-	tkgrid(tklabel(tt1,text="Custom day count index",bg='white',font=font_small))
-	tkgrid(tklabel(tt1,text="(e.g. number of days where TX > 40, named TXgt40)",bg='white',font=font_small))
+    index.calc(progress, metadata)
 
-	user.var <- c("TN","TX","TM","PR","DTR")
-	user.op <- c(">",">=","<","<=")
-	comboBox1 <- tkwidget(tt1,"ComboBox",editable=FALSE,values=user.var,width=8)
-	comboBox2 <- tkwidget(tt1,"ComboBox",editable=FALSE,values=user.op,width=8)
+    # Create a zip file containing all of the results.
+    curwd <- getwd()
+    setwd(paste(outdirtmp, '..', sep="/"))
+    files2zip <- dir(basename(outdirtmp), full.names = TRUE)
+    zip(zipfile = basename(outdirtmp), files = files2zip)
+    setwd(curwd)
 
-	tkgrid(tklabel(tt1,text="Variable",bg='white',font=font_small),comboBox1)
-	tkgrid(tklabel(tt1,text="Operation",bg='white',font=font_small),comboBox2)
-	tkgrid(tklabel(tt1,text="Threshold",bg='white',font=font_small),textEntryWidget24)
-
-	tkpack(tt1)
-
-	check.then.continue<-function()   # get user-definded parameters, check if they're valid, and set as global variable.
-	{
-		ctmp<-as.character(tclvalue(textEntry3))
-		plot.title<-gsub('\\#',title.station,ctmp); assign('plot.title',plot.title,envir=.GlobalEnv)
-		
-		Entry13<-as.numeric(tclvalue(textEntry13)); assign("wsdi_ud",as.double(Entry13),envir=.GlobalEnv) # 13 wsdi wsdi_ud
-		if(Entry13<2 | Entry13>10 ){tkmessageBox(message='WSDI days is incorrect\n\nvalid range is [2, 10]',icon='warning');  return()}
-		Entry14<-as.numeric(tclvalue(textEntry14)); assign("csdi_ud",as.double(Entry14),envir=.GlobalEnv)    # 14 csdi_ud
-		if(Entry14<2 | Entry14>10 ){tkmessageBox(message='CSDI days is incorrect\n\nvalid range is [2, 10]',icon='warning');  return()}
-		
-		Entry15<-as.numeric(tclvalue(textEntry15)); assign("rx_ud",as.double(Entry15),envir=.GlobalEnv)# 14 rx_ud
-		if(Entry15<2 | Entry15>10 ){tkmessageBox(message='RxDay days is incorrect\n\nvalid range is [2, 10]',icon='warning');  return()}
-		Entry16<-as.numeric(tclvalue(textEntry16)); assign("txtn_ud",as.double(Entry16),envir=.GlobalEnv)# txtn_ud
-		if(Entry16<2 | Entry16>10 ){tkmessageBox(message='n in nTXnTN and nTXbnTNb is incorrect\n\nvalid range is [2, 10]',icon='warning');  return()}
-		Entry17<-as.numeric(tclvalue(textEntry17)); assign("rnnmm_ud",as.double(Entry17),envir=.GlobalEnv)# txtn_ud
-		if(Entry17<0 ){tkmessageBox(message='User defined amount of precipitation (mm) for Rnnmm is incorrect\n\nvalid range is [0,Inf)',icon='warning');  return()}
-	
-		Entry20<-as.numeric(tclvalue(textEntry20)); assign("Tb_HDD",as.double(Entry20),envir=.GlobalEnv) # Tb for HDDheat
-		Entry21<-as.numeric(tclvalue(textEntry21)); assign("Tb_CDD",as.double(Entry21),envir=.GlobalEnv) # Tb for HDDcold
-		Entry22<-as.numeric(tclvalue(textEntry22)); assign("Tb_GDD",as.double(Entry22),envir=.GlobalEnv) # Tb for HDDgrow
-		Entry23<-as.numeric(tclvalue(textEntry23)); assign("custom_SPEI",as.double(Entry23),envir=.GlobalEnv) # custom SPEI/SPI time period
-	
-		var.choice <- user.var[as.numeric(tclvalue(tcl(comboBox1,"getvalue")))+1]; assign("var.choice",var.choice,envir=.GlobalEnv)
-		op.choice <- user.op[as.numeric(tclvalue(tcl(comboBox2,"getvalue")))+1]; assign("op.choice",op.choice,envir=.GlobalEnv)
-		constant.choice <- as.numeric(tclvalue(textEntry24)); assign("constant.choice",constant.choice,envir=.GlobalEnv)
-	
-		tkgrab.release(infor);    tkdestroy(infor)
-		index.calc(metadata,TRUE)
-	}  # end of function check.then.continue
-  
-	cancel1<-function() # Users don't want to continue, so close this window and return to main window.
-	{
-		tkdestroy(infor)
-		return()
-	}
-  
-	tt1<-tkframe(infor)
-	ok1.but<-    tkbutton(tt1,text=" CALCULATE INDICES ",command=check.then.continue,bg='white',font=font_small)
-	cancel1.but<-tkbutton(tt1,text="  CANCEL  ",command=cancel1,bg='white',font=font_small)
-	tkgrid(ok1.but,cancel1.but)
-	tkpack(tt1)
 } # end of draw.step2.interface
-
-# done
-done<-function(){tkdestroy(start1)}
 
 # This function loops through all indices and calls the appropriate functions to calculate them.
 # It contains functions for some indices that are not kept in climpact2.etsci-functions.r. This is because they are specific to the GUI.
-# The 'graphics' parameter indicates whether a progress bar is drawn to the screen via tcltk
-index.calc<-function(metadata,graphics=TRUE){
+index.calc<-function(progress, metadata) {
 	calculate.custom.index <- function() {
 		print("calculating custom index",quote=FALSE)
 		for (frequency in c("monthly","annual")) {
@@ -1163,6 +900,8 @@ index.calc<-function(metadata,graphics=TRUE){
 		}
 	}
 
+    progress$inc(0.01)
+
 	calculate.hw <- function() {
 		# If heatwave previous percentiles have been read in by user then use these in heatwave calculations, otherwise let climdex.hw calculate percentiles using currently loaded data.
         # #{ tx90p <- hwlist$HW.TX90 ; tn90p <- hwlist$HW.TN90 ; tavg90p <- hwlist$HW.TAVG90 } else {
@@ -1172,6 +911,7 @@ index.calc<-function(metadata,graphics=TRUE){
 
 			write.hw.csv(index.stored,index.name=as.character(index.list$Short.name[i]),header="Heatwave definitions and aspects")
 			plot.hw(index.stored,index.name=as.character(index.list$Short.name[i]),index.units=as.character(index.list$Units[i]),x.label="Years",metadata=metadata)
+
 	}
 
 	calculate.spei <- function() {
@@ -1338,8 +1078,8 @@ index.calc<-function(metadata,graphics=TRUE){
 	# Check 'all' PDF isn't open, then open.
 	pdfname = paste(ofilename,"_all_plots.pdf",sep="")
 
-	tmp = try(pdf(file=paste(outjpgdir,pdfname,sep="/"),height=8,width=11.5))
-	if(class(tmp)=="try-error") { tkmessageBox(message=paste("Error encountered, please check that the file ",pdfname," is not currently open, then select OK to try again.",sep=""),icon='warning'); return() }
+    # Climpact2 has sole access to this file, should not encounter errors.
+	pdf(file=paste(outjpgdir,pdfname,sep="/"),height=8,width=11.5)
 	pdf.dev=dev.cur()
 	assign('pdf.dev',pdf.dev,envir=.GlobalEnv)
 	
@@ -1357,14 +1097,17 @@ index.calc<-function(metadata,graphics=TRUE){
 	# create a list of indices that do not require a 'frequency' parameter
 	no.freq.list = c("r95ptot","r99ptot","sdii","hddheat","cddcold","gddgrow","r95p","r99p","gsl","spi","spei","hw","wsdi","wsdin","csdi","csdin","ntxntn","ntxbntnb")
 
+    progress$inc(0.01)
+
 	#####################################
 	# MEAT DONE HERE
 	# Loop through and calculate and plot each index
-	if(graphics) pb <- tkProgressBar("Index calculation progress", "Calculation complete %",0, 100, 10)
 
 	for (i in 1:length(index.list$Short.name)) {
 		print(paste("calculating",index.list$Short.name[i]),quote=FALSE)
 		tmp.index.name = as.character(index.list$Short.name[i])
+
+        progress$inc(0.01)
 		tmp.index.def = as.character(index.list$Definition[i])
 		# Set frequency if relevant to current index
 		if(is.na(index.list$Annual.flag[i])) frequency = NA
@@ -1375,7 +1118,7 @@ index.calc<-function(metadata,graphics=TRUE){
 		
 		if(!as.character(index.list$Short.name[i]) %in% no.freq.list) index.parameter = paste("cio,freq=\"",frequency,"\"",sep="")
 		else index.parameter = paste("cio",sep="")
-		
+
 		if(index.list$Short.name[i]=="hw") { calculate.hw() ; next }
 		else if (index.list$Short.name[i]=="spei") { calculate.spei() ; next }
 		else if (index.list$Short.name[i]=="spi") { calculate.spi() ; next }
@@ -1422,38 +1165,13 @@ index.calc<-function(metadata,graphics=TRUE){
 		cat(file=trend_file,paste(tmp.index.name,metadata$year.start,metadata$year.end,round(as.numeric(out$coef.table[[1]][2, 1]), 3),round(as.numeric(out$coef.table[[1]][2, 2]), 3),round(as.numeric(out$summary[1, 6]),3),sep=","),fill=180,append=T)
 		remove(index.parameter)
 
-		if(graphics) {
-			progress = round(as.numeric(i/length(index.list$Short.name))*100,0)
-			setTkProgressBar(pb,progress,title=paste(progress,"%",sep=""))
-		}
 	}
+    progress$inc(0.05)
+
 	if(length(op.choice)==0 || length(var.choice)==0) { print("no custom index to calculate",quote=FALSE) } else { calculate.custom.index() }
 	dev.off(pdf.dev)
 
-	# Show message complete window and locations to output
-	if(graphics) 
-	{
-		close(pb)
-		graphics.off()  # close the pdf file, so you can open to view it now.
-
-		nstation<-tktoplevel(bg='white')
-		tkwm.geometry(nstation, "+300+200") # position in upper left corner of screen
-		tkwm.title(nstation,"ClimPACT2 - Done")
-        tkfocus(nstation)
-	
-		okk<-function(){tkdestroy(nstation);tkfocus(start1)}  # all are done, return to main window.
-		textlabel0<-tklabel(nstation,text="     ",bg='white')  # message showing all are done, showing directory.
-		textlabel1<-tklabel(nstation,text="Indices calculation completed",font=fontHeading1,bg='white')
-		textlabel2<-tklabel(nstation,text=paste("   Plots are in ",outjpgdir,"   ",sep=" "),font=fontHeading2,bg='white')
-		textlabel3<-tklabel(nstation,text=paste("   Data are in ",outinddir,"   ",sep=" "),font=fontHeading2,bg='white')
-
-		okk.but<-tkbutton(nstation,text="   OK   ",command=okk,width=20,bg='white')
-		tkpack(textlabel1)
-		tkpack(textlabel2)
-		tkpack(textlabel3)
-		tkpack(textlabel0)
-		tkpack(okk.but)
-	}
+    progress$inc(0.01)
 }
 # end of index.calc 
 
@@ -1935,113 +1653,6 @@ cspi <- function(data, scale, kernel=list(type='rectangular',shift=0),
 	ref.start, ref.end, x))
 }
 
-## <<<<<<<<<<<<< end of SPEI package  <<<<<<<<<<<<<<
-
-# brief introduction of the background.
-about <- function(){
-        ab.done <- function(){
-                tkdestroy(ab)
-                tkfocus(start1)
-        }
-
-        ab <<- tktoplevel(bg = "white")
-        tkfocus(ab)
-        tkwm.title(ab, "\tClimPACT2 - Credits\t")
-        tt2 <- tkframe(ab,bg="white")
-        frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-        tkgrid(frame.space)
-        tkgrid(tklabel(tt2, text = "Credits", bg = "white", font = fontHeading2),columnspan=1)
-        tkgrid(frame.space)
-        tkgrid(tt2)
-
-        tt2 <- tkframe(ab,bg="white")
-        frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-        tkgrid(frame.space)
-        tkgrid(tklabel(tt2,text=
-" Oversight: World Meteorological Organisation (WMO), the Expert Team 
- on Sector Climate Indices (ET-SCI).
-  
- Design and documentation: Lisa Alexander and Nicholas Herold.
-  
- GUI: Nicholas Herold, James Goldie, Hongang Yang, Yang Feng and Yujun Ouyang.
-  
- NetCDF calculation: Pacific Climate Impacts Consortium (David Bronaugh, 
- James Hiebert), Nicholas Herold.
-  
- Batch processing: Nicholas Herold.
-
- For any comments, questions or suggestions, e-mail nicholas.herold@unsw.edu.au"
-,bg='white',font=font_small,width=90,justify="left"),sticky="nsew")
-        tkgrid(frame.space)
-        tkgrid(tt2)
-
-        tt2 <- tkframe(ab,bg="white")
-        frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-        tkgrid(frame.space)
-        tkgrid(tt2)
-
-        tt2 <- tkframe(ab,bg="white")
-        ok1.but<-tkbutton(tt2,text="    Done    ",command=ab.done,bg='white',font=font_small)
-        tkgrid(ok1.but)
-        tkgrid(tt2)
-
-        tt3 <- tkframe(ab,bg="white")
-        frame.space <- tklabel(tt3, text = " ", font = font_small, bg = "white")
-        tkgrid(frame.space)
-        tkgrid(tt3)
-}
-
-license <- function(){
-	lic.done <- function(){
-		tkdestroy(lic)
-		tkfocus(start1)
-	}
-
-	lic <<- tktoplevel(bg = "white")
-	tkfocus(lic)
-	tkwm.title(lic, "\tClimPACT2 - License\t")
-	tt2 <- tkframe(lic,bg="white")
-	frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-	tkgrid(frame.space)
-	tkgrid(frame.space)
-	tkgrid(tt2)
-	
-	tt2 <- tkframe(lic,bg="white")
-	frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-	tkgrid(frame.space)
-	tkgrid(tklabel(tt2,text=
-" Copyright (C) 2016 University of New South Wales
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, version 3 of the License.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see https://www.gnu.org/licenses/gpl-3.0.txt.",bg='white',font=font_small,width=90),sticky="nsew")
-	tkgrid(frame.space)
-	tkgrid(tt2)
-	
-	tt2 <- tkframe(lic,bg="white")
-	frame.space <- tklabel(tt2, text = " ", font = font_small, bg = "white")
-	tkgrid(frame.space)
-	tkgrid(tt2)
-	
-	tt2 <- tkframe(lic,bg="white")
-	ok1.but<-tkbutton(tt2,text="    Done    ",command=lic.done,bg='white',font=font_small)
-	tkgrid(ok1.but)
-	tkgrid(tt2)
-	
-	tt3 <- tkframe(lic,bg="white")
-	frame.space <- tklabel(tt3, text = " ", font = font_small, bg = "white")
-	tkgrid(frame.space)
-	tkgrid(tt3)
-}
-
 # Check for required packages and install if necessary
 package.check <- function() {
 	gui.packages <- c("bitops","Rcpp","caTools","PCICt","SPEI","climdex.pcic")
@@ -2057,6 +1668,7 @@ package.check <- function() {
 	print(paste("R version ",as.character(getRversion())," detected.",sep=""),quote=FALSE)
 }
 
+
 # Define global variables. The use of global variables is undesirable from a programming point of view
 # but for historical purposes is still used in this code.
 global.vars <- function() {
@@ -2064,18 +1676,7 @@ global.vars <- function() {
 	reading.pb <<- process.pb <<- pb <<- orig.name.user <<- qc.yes <<- outthresdir <<- quantiles <<- cio <<- ofilename <<- infor1 <<- orig.name <<- title.station <<- outlogdir <<- thres.calc <<- 
 	add.data <<- add.data.name <<- out <<- ref.start <<- ts.end <<- basetmin <<- basetmax <<- baseprec <<- start.but <<- cal.but <<- ttmp <<- outqcdir <<- NULL
 	
-	start1<<-tktoplevel(bg='white')
 	version.climpact <<- software_id
-	
-	# Fonts 
-	fontHeading     <<- tkfont.create(family = "times", size = 40, weight = "bold", slant = "italic")
-	fontHeading1    <<- tkfont.create(family = "times", size = 18)
-	fontHeading2    <<- tkfont.create(family = "times", size = 14, weight = "bold")
-	fontTextLabel   <<- tkfont.create(family = "arial", size = 12)
-	font_small  <<- "arial 12"
-	font_small_bold  <<- "arial 12 bold"
-	font_err    <<- "times 13 bold"
-	grey_font <<- tkfont.create(family = "arial", size = 30, weight = "bold", slant = "italic") #'times 20 grey bold'
 	
 	# Global variables
 	running.zero.allowed.in.temperature <<- 4
@@ -2084,113 +1685,40 @@ global.vars <- function() {
 	barplot_flag    <<- TRUE
 	loaded <<- FALSE
 	min_trend     <<- 10	# minimum number of data points for plotting a linear trend
-	
-	# Initial index parameter values
-	stations<<-tclVar(paste(" "))
-	base.year.start.tcl<<-tclVar(paste("1971"));base.year.end.tcl<<-tclVar(paste("2000"))
-	latentry<<-tclVar(''); lonentry<<-tclVar('') ; add.data.name.entry <<-tclVar('')
-	Entry4<<-tclVar(paste("0"))
-	Entry5<<-tclVar(paste("0"))
-	Entry13<<-tclVar(paste("2"))
-	Entry14<<-tclVar(paste("2"))
-	Entry15<<-tclVar(paste("3"))
-	Entry16<<-tclVar(paste("2"))
-	Entry17<<-tclVar(paste("30"))
-	Entry20<<-tclVar(paste("18"))
-	Entry21<<-tclVar(paste("18"))
-	Entry22<<-tclVar(paste("10"))
-	Entry23<<-tclVar(paste("24"))
-	Entry24<<-tclVar(paste("0"))
 }
 
-# Main GUI function. Initiates GUI.
-startss <- function() {
-	package.check()
-	library(tcltk)
-	tclRequire("BWidget")
-	source("ancillary/climpact2.etsci-functions.r")
-	global.vars()
-	logo_require <- FALSE
-	
-	# search logo files in current working directory.
-	no.logo <- FALSE;
-	dir0 <- getwd();
-	logo1 <- "user_guide/images/coess_unsw.gif";
-	
-	if (logo_require == TRUE)
-	{  # Users want to search another directory for the logo files.
-		while (file.exists(paste(dir0, "/", logo1, sep = "")) == FALSE)
-		{
-			dir0 <- tk_choose.dir(getwd(), caption = "Select directory containing three .gif files");
-			if (is.na(dir0) == TRUE)
-			{
-			no.logo <- TRUE;
-			break();
-			}
-		}
-	}
-	if (file.exists(paste(dir0, "/", logo1, sep = "")) == FALSE) no.logo <- TRUE; # find logos?
-	
-	tkwm.geometry(start1, "+400+200"); # position in upper left corner of screen
-	tkwm.title(start1, paste("ClimPACT2",sep=" "));
-	
-	# Show logos on upper half of the main window, or "no logos available".  
-	if (no.logo == FALSE)
-	{  # with logos
-	  logo1 <- paste(dir0, "/", logo1, sep = "");
-	  img  <- tkimage.create("photo", file = logo1);
-	  right <- tklabel(start1, image = img);
-	  tkgrid(right,columnspan=3)
-	} else
-	{    # no logos, show a help button.
-	  help.logo <- function()
-	  {
-	    tkmessageBox(message=paste('You can see this help because the logo files are not in the working directory of R!',sep = ''), icon = 'question');
-	  }
-	
-	  right <- tkbutton(start1, text = " ? ", command = help.logo, bg = "white", foreground = "light grey", width = 2);
-	  left <- tklabel(start1, text = "  no logos available  ", font = grey_font, width = 30, bg = "white", foreground = "light grey");
-	}
-	# Everything above here relates to logos. A tad verbose...
-
-	tkgrid(tklabel(start1, text = "    ", bg = "white",width=40));
-	tkgrid(tklabel(start1, text = " ClimPACT2 ", font = fontHeading, width = 15, bg = "white"), columnspan = 3)
-	tkgrid(tklabel(start1, text = paste(" v",version.climpact," ",sep=""), font = fontTextLabel, width = 5, bg = "white"), columnspan = 3)
-	tkgrid(tklabel(start1, text = "    ", bg = "white"), columnspan = 3);
-	tkgrid(tklabel(start1, text = "    ", bg = "white"));
-	tkgrid(tklabel(start1, text = "    ", bg = "white"));
-
-	start.but   <<- tkbutton(start1, text = "   LOAD AND  \n  CHECK DATA   ", command = load.data.qc, width = 15, font = fontHeading2, bg = "lightgreen") 
-	cal.but     <<- tkbutton(start1, text = "   CALCULATE \n   INDICES  ", command = draw.step2.interface, width = 15, font = fontHeading2, bg = "white")
-	
-	tkgrid(tklabel(start1, text = " STEP. 1", bg = "white",font=fontHeading1,width=8), columnspan =3)
-	tkgrid(start.but, columnspan =3)
-	tkgrid(tklabel(start1, text = "    ", bg = "white"));
-	tkgrid(tklabel(start1, text = " STEP. 2  ", bg = "white",font=fontHeading1,width=8), columnspan =3)
-	tkgrid(cal.but, columnspan =3)
-
-
-	cancel.but  <- tkbutton(start1, text = " Exit ", command = done, width = 7, font = fontHeading2, bg = "white");
-#	help.but    <- tkbutton(start1, text = " About ", command = about, width = 7, font = fontHeading2, bg = "white");
-	license.but <- tkbutton(start1, text = " License ", command = license, width = 7, font = fontHeading2, bg = "white");
-
-	gap = tklabel(start1,width=5,text="",bg="white")
-
-	tkgrid(tklabel(start1, text = "    ", bg = "white"));
-	tkgrid(tklabel(start1, text = "    ", bg = "white"));
-
-#	tkgrid(help.but, columnspan = 3)
-	tkgrid(license.but, columnspan = 3)
-	tkgrid(cancel.but, columnspan = 3)
-	tkgrid(tklabel(start1, text = "", bg = "white"))
-	tkgrid(tklabel(start1, text = "", bg = "white"))
-
-	tkfocus(start1)
+get.qc.dir <- function()
+{
+    return(outqcdir)
 }
 
-# Call function to start the program.
-# This IF function is a hack to allow functionality in this file to be sourced without having to run the GUI itself.
-# A more elegant solution likely exists. This IF statement requires that for startss() NOT to be called, some command-line
-# parameters must have been specified (which is precisely what happens when calling the batch processing code).
-#print(commandArgs())
-if(length(commandArgs())==1) startss()
+get.indices.dir <- function()
+{
+    return(outinddir)
+}
+
+get.plots.dir <- function()
+{
+    return(outjpgdir)
+}
+
+get.trends.dir <- function()
+{
+    return(outtrddir)
+}
+
+get.thresh.dir <- function()
+{
+    return(outthresdir)
+}
+
+get.output.zipfile <- function()
+{
+    return(zipfile)
+}
+
+get.corr.dir <- function()
+{
+  return(corrdir)
+}
+
